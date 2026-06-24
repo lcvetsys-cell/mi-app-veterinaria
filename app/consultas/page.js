@@ -13,6 +13,7 @@ export default function Consultas() {
   const [motivo, setMotivo] = useState('')
   const [diagnostico, setDiagnostico] = useState('')
   const [editandoId, setEditandoId] = useState(null)
+  const [busqueda, setBusqueda] = useState('')
 
   async function obtenerConsultas() {
     const { data, error } = await supabase.from('consultas').select('*').order('fecha', { ascending: false })
@@ -155,7 +156,7 @@ export default function Consultas() {
           <input placeholder="Motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
 
           <label className="text-xs font-medium text-gray-700">Diagnóstico</label>
-          <input placeholder="Diagnóstico" value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} />
+          <textarea placeholder="Diagnóstico" value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} rows={3} />
         </div>
 
         <div className="flex gap-2">
@@ -166,31 +167,43 @@ export default function Consultas() {
         </div>
       </form>
 
+      <div className="flex gap-2 mb-6">
+        <input
+          placeholder="Buscar consulta..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="max-w-sm"
+        />
+        <button type="button">Buscar</button>
+      </div>
+
       <hr className="border-t border-gray-200 mb-6" />
 
       <div className="flex flex-col gap-5">
-        {consultas.map((consulta) => {
-          const mascota = mascotas.find((m) => m.id === consulta.mascota_id)
-          return (
-            <div key={consulta.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Motivo</p>
-                  <p className="text-xl font-semibold text-[var(--color-teal)]">{consulta.motivo || 'Sin motivo'}</p>
+        {consultas
+          .filter((consulta) => (consulta.motivo || '').toLowerCase().includes(busqueda.toLowerCase()))
+          .map((consulta) => {
+            const mascota = mascotas.find((m) => m.id === consulta.mascota_id)
+            return (
+              <div key={consulta.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Motivo</p>
+                    <p className="text-xl font-semibold text-[var(--color-teal)]">{consulta.motivo || 'Sin motivo'}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={() => empezarEdicion(consulta)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
+                    <button onClick={() => eliminarConsulta(consulta.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
+                  </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <button onClick={() => empezarEdicion(consulta)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
-                  <button onClick={() => eliminarConsulta(consulta.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
+                <div className="flex flex-wrap gap-3">
+                  <Dato titulo="Mascota" valor={mascota ? nombreConDueño(mascota) : 'Sin mascota'} />
+                  <Dato titulo="Fecha" valor={consulta.fecha} />
+                  <Dato titulo="Diagnóstico" valor={consulta.diagnostico} />
                 </div>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <Dato titulo="Mascota" valor={mascota ? nombreConDueño(mascota) : 'Sin mascota'} />
-                <Dato titulo="Fecha" valor={consulta.fecha} />
-                <Dato titulo="Diagnóstico" valor={consulta.diagnostico} />
-              </div>
-            </div>
-          )
-        })}
+            )
+          })}
       </div>
     </div>
   )

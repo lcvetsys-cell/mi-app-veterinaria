@@ -183,7 +183,7 @@ export default function Mascotas() {
 
       <div className="flex gap-2 mb-6">
         <input
-          placeholder="Buscar mascota..."
+          placeholder="Buscar tutor..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           className="max-w-sm"
@@ -195,7 +195,10 @@ export default function Mascotas() {
 
       <div className="flex flex-col gap-5">
         {mascotas
-          .filter((mascota) => mascota.nombre.toLowerCase().includes(busqueda.toLowerCase()))
+          .filter((mascota) => {
+            const dueño = clientes.find((c) => c.id === mascota.cliente_id)
+            return dueño && `${dueño.nombre} ${dueño.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
+          })
           .map((mascota) => {
             const dueño = clientes.find((c) => c.id === mascota.cliente_id)
             return (

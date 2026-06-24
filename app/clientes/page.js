@@ -12,14 +12,12 @@ export default function Clientes() {
   const [fechaNac, setFechaNac] = useState('')
   const [fechaReg, setFechaReg] = useState('')
   const [editandoId, setEditandoId] = useState(null)
+  const [busqueda, setBusqueda] = useState('')
 
   async function obtenerClientes() {
     const { data, error } = await supabase.from('clientes').select('*').order('nombre', { ascending: true })
-    if (error) {
-      console.log('error', error)
-    } else {
-      setClientes(data)
-    }
+    if (error) console.log('error', error)
+    else setClientes(data)
   }
 
   useEffect(() => {
@@ -51,7 +49,6 @@ export default function Clientes() {
 
   async function guardarCliente(e) {
     e.preventDefault()
-
     const datos = {
       nombre,
       apellido,
@@ -61,18 +58,15 @@ export default function Clientes() {
       fecha_nac: fechaNac || null,
       fecha_reg: fechaReg || null,
     }
-
     let error
     if (editandoId) {
-      const resultado = await supabase.from('clientes').update(datos).eq('id', editandoId)
-      error = resultado.error
+      const r = await supabase.from('clientes').update(datos).eq('id', editandoId)
+      error = r.error
     } else {
-      const resultado = await supabase.from('clientes').insert([datos])
-      error = resultado.error
+      const r = await supabase.from('clientes').insert([datos])
+      error = r.error
     }
-
     if (error) {
-      console.log('error al guardar', error)
       alert('No se pudo guardar: ' + error.message)
     } else {
       limpiarFormulario()
@@ -83,15 +77,9 @@ export default function Clientes() {
   async function eliminarCliente(id) {
     const confirmar = window.confirm('¿Seguro que querés eliminar este cliente?')
     if (!confirmar) return
-
     const { error } = await supabase.from('clientes').delete().eq('id', id)
-
-    if (error) {
-      console.log('error al eliminar', error)
-      alert('No se pudo eliminar: ' + error.message)
-    } else {
-      obtenerClientes()
-    }
+    if (error) alert('No se pudo eliminar: ' + error.message)
+    else obtenerClientes()
   }
 
   function Dato({ titulo, valor }) {
@@ -136,38 +124,46 @@ export default function Clientes() {
         </div>
 
         <div className="flex gap-2">
-          <button type="submit">
-            {editandoId ? 'Guardar cambios' : 'Agregar cliente'}
-          </button>
+          <button type="submit">{editandoId ? 'Guardar cambios' : 'Agregar cliente'}</button>
           {editandoId && (
-            <button type="button" onClick={limpiarFormulario} className="!bg-gray-300 !text-gray-700">
-              Cancelar
-            </button>
+            <button type="button" onClick={limpiarFormulario} className="!bg-gray-300 !text-gray-700">Cancelar</button>
           )}
         </div>
       </form>
 
+      <div className="flex gap-2 mb-6">
+        <input
+          placeholder="Buscar cliente..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="max-w-sm"
+        />
+        <button type="button">Buscar</button>
+      </div>
+
       <hr className="border-t border-gray-200 mb-6" />
 
       <div className="flex flex-col gap-5">
-        {clientes.map((cliente) => (
-          <div key={cliente.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-center mb-4">
-              <p className="text-xl font-semibold text-[var(--color-teal)]">{cliente.nombre} {cliente.apellido}</p>
-              <div className="flex gap-2 shrink-0">
-                <button onClick={() => empezarEdicion(cliente)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
-                <button onClick={() => eliminarCliente(cliente.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
+        {clientes
+          .filter((cliente) => `${cliente.nombre} ${cliente.apellido}`.toLowerCase().includes(busqueda.toLowerCase()))
+          .map((cliente) => (
+            <div key={cliente.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-xl font-semibold text-[var(--color-teal)]">{cliente.nombre} {cliente.apellido}</p>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => empezarEdicion(cliente)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
+                  <button onClick={() => eliminarCliente(cliente.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Dato titulo="Teléfono" valor={cliente.telefono} />
+                <Dato titulo="Email" valor={cliente.email} />
+                <Dato titulo="Dirección" valor={cliente.direccion} />
+                <Dato titulo="Nacimiento" valor={cliente.fecha_nac} />
+                <Dato titulo="Registro" valor={cliente.fecha_reg} />
               </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Dato titulo="Teléfono" valor={cliente.telefono} />
-              <Dato titulo="Email" valor={cliente.email} />
-              <Dato titulo="Dirección" valor={cliente.direccion} />
-              <Dato titulo="Nacimiento" valor={cliente.fecha_nac} />
-              <Dato titulo="Registro" valor={cliente.fecha_reg} />
-            </div>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   )
