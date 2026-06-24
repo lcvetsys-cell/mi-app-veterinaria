@@ -46,6 +46,7 @@ const { data, error } = await supabase.from('clientes').select('*').order('nombr
     setDireccion(cliente.direccion || '')
     setFechaNac(cliente.fecha_nac || '')
     setFechaReg(cliente.fecha_reg || '')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function guardarCliente(e) {

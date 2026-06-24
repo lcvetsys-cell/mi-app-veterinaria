@@ -48,6 +48,7 @@ export default function Consultas() {
     setFecha(consulta.fecha || '')
     setMotivo(consulta.motivo || '')
     setDiagnostico(consulta.diagnostico || '')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function guardarConsulta(e) {

@@ -48,6 +48,7 @@ export default function Turnos() {
     setFecha(turno.fecha || '')
     setHora(turno.hora || '')
     setEstado(turno.estado || '')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function guardarTurno(e) {

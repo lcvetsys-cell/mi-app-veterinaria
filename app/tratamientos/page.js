@@ -54,6 +54,7 @@ export default function Tratamientos() {
     setFechaAplicacion(tratamiento.fecha_aplicacion || '')
     setFechaProxima(tratamiento.fecha_proxima || '')
     setNotas(tratamiento.notas || '')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function guardarTratamiento(e) {

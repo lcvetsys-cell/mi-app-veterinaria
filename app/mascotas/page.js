@@ -54,6 +54,7 @@ const { data, error } = await supabase.from('mascotas').select('*').order('nombr
     setRaza(mascota.raza || '')
     setFechaNacimiento(mascota.fecha_nacimiento || '')
     setClienteId(mascota.cliente_id || '')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function guardarMascota(e) {
