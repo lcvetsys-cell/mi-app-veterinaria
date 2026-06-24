@@ -2,8 +2,9 @@ import './globals.css'
 import Navbar from './Navbar'
 
 export const metadata = {
-  title: 'App Veterinaria',
+  title: 'LC Vet',
   description: 'Sistema de gestión veterinaria',
+  manifest: '/manifest.json',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {  return (
