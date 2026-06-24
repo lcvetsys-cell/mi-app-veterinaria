@@ -21,7 +21,7 @@ export default function Login() {
     if (error) {
       setError('Email o contraseña incorrectos')
     } else {
-      router.push('/clientes')
+window.location.href = '/clientes'
     }
   }
 
