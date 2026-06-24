@@ -12,7 +12,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav style={{ padding: '1rem', borderBottom: '1px solid #ccc', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+    <nav style={{ padding: '1rem 3rem', borderBottom: '1px solid #ccc', display: 'flex', gap: '1rem', alignItems: 'center' }}>
       <Link href="/clientes">Clientes</Link>
       <Link href="/mascotas">Mascotas</Link>
       <Link href="/consultas">Consultas</Link>

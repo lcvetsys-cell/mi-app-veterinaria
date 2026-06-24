@@ -14,7 +14,7 @@ export default function Clientes() {
   const [editandoId, setEditandoId] = useState(null)
 
   async function obtenerClientes() {
-const { data, error } = await supabase.from('clientes').select('*').order('nombre', { ascending: true })
+    const { data, error } = await supabase.from('clientes').select('*').order('nombre', { ascending: true })
     if (error) {
       console.log('error', error)
     } else {
@@ -104,30 +104,37 @@ const { data, error } = await supabase.from('clientes').select('*').order('nombr
   }
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="px-12 py-8 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Clientes</h1>
 
-      <form onSubmit={guardarCliente} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-md">
+      <form onSubmit={guardarCliente} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
           {editandoId ? 'Editar cliente' : 'Nuevo cliente'}
         </h2>
-        <div className="flex flex-col gap-3 mb-6">
-          <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} className="w-1/2" />
-          <input placeholder="Apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} className="w-1/2" />
-          <input placeholder="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value)} className="w-1/2" />
-          <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-1/2" />
-          <input placeholder="Dirección" value={direccion} onChange={(e) => setDireccion(e.target.value)} className="w-1/2" />
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-700">Fecha de Nacimiento</label>
-              <input type="date" value={fechaNac} onChange={(e) => setFechaNac(e.target.value)} className="w-1/2" title="Fecha de nacimiento" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-700">Fecha de Registro</label>
-              <input type="date" value={fechaReg} onChange={(e) => setFechaReg(e.target.value)} className="w-1/2" title="Fecha de registro" />
-            </div>
-          </div>
+
+        <div className="grid grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6">
+          <label className="text-xs font-medium text-gray-700">Nombre</label>
+          <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+
+          <label className="text-xs font-medium text-gray-700">Apellido</label>
+          <input placeholder="Apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} />
+
+          <label className="text-xs font-medium text-gray-700">Teléfono</label>
+          <input placeholder="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
+
+          <label className="text-xs font-medium text-gray-700">Email</label>
+          <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+
+          <label className="text-xs font-medium text-gray-700">Dirección</label>
+          <input placeholder="Dirección" value={direccion} onChange={(e) => setDireccion(e.target.value)} />
+
+          <label className="text-xs font-medium text-gray-700">Nacimiento</label>
+          <input type="date" value={fechaNac} onChange={(e) => setFechaNac(e.target.value)} />
+
+          <label className="text-xs font-medium text-gray-700">Registro</label>
+          <input type="date" value={fechaReg} onChange={(e) => setFechaReg(e.target.value)} />
         </div>
+
         <div className="flex gap-2">
           <button type="submit">
             {editandoId ? 'Guardar cambios' : 'Agregar cliente'}

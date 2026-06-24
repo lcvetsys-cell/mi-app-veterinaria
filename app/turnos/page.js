@@ -5,7 +5,10 @@ import { supabase } from '../../lib/supabaseClient'
 export default function Turnos() {
   const [turnos, setTurnos] = useState([])
   const [mascotas, setMascotas] = useState([])
+  const [clientes, setClientes] = useState([])
   const [mascotaId, setMascotaId] = useState('')
+  const [busquedaMascota, setBusquedaMascota] = useState('')
+  const [mostrarOpciones, setMostrarOpciones] = useState(false)
   const [fecha, setFecha] = useState('')
   const [hora, setHora] = useState('')
   const [estado, setEstado] = useState('')
@@ -13,29 +16,36 @@ export default function Turnos() {
 
   async function obtenerTurnos() {
     const { data, error } = await supabase.from('turnos').select('*').order('fecha', { ascending: true })
-    if (error) {
-      console.log('error', error)
-    } else {
-      setTurnos(data)
-    }
+    if (error) console.log('error', error)
+    else setTurnos(data)
   }
 
   async function obtenerMascotas() {
     const { data, error } = await supabase.from('mascotas').select('*').order('nombre', { ascending: true })
-    if (error) {
-      console.log('error', error)
-    } else {
-      setMascotas(data)
-    }
+    if (error) console.log('error', error)
+    else setMascotas(data)
+  }
+
+  async function obtenerClientes() {
+    const { data, error } = await supabase.from('clientes').select('*')
+    if (error) console.log('error', error)
+    else setClientes(data)
   }
 
   useEffect(() => {
     obtenerTurnos()
     obtenerMascotas()
+    obtenerClientes()
   }, [])
+
+  function nombreConDueño(mascota) {
+    const dueño = clientes.find((c) => c.id === mascota.cliente_id)
+    return dueño ? `${mascota.nombre} — ${dueño.nombre} ${dueño.apellido}` : mascota.nombre
+  }
 
   function limpiarFormulario() {
     setMascotaId('')
+    setBusquedaMascota('')
     setFecha('')
     setHora('')
     setEstado('')
@@ -45,33 +55,32 @@ export default function Turnos() {
   function empezarEdicion(turno) {
     setEditandoId(turno.id)
     setMascotaId(turno.mascota_id || '')
+    const mascota = mascotas.find((m) => m.id === turno.mascota_id)
+    setBusquedaMascota(mascota ? nombreConDueño(mascota) : '')
     setFecha(turno.fecha || '')
     setHora(turno.hora || '')
     setEstado(turno.estado || '')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  function seleccionarMascota(mascota) {
+    setMascotaId(mascota.id)
+    setBusquedaMascota(nombreConDueño(mascota))
+    setMostrarOpciones(false)
+  }
+
   async function guardarTurno(e) {
     e.preventDefault()
-
-    const datos = {
-      mascota_id: mascotaId,
-      fecha: fecha || null,
-      hora: hora || null,
-      estado,
-    }
-
+    const datos = { mascota_id: mascotaId, fecha: fecha || null, hora: hora || null, estado }
     let error
     if (editandoId) {
-      const resultado = await supabase.from('turnos').update(datos).eq('id', editandoId)
-      error = resultado.error
+      const r = await supabase.from('turnos').update(datos).eq('id', editandoId)
+      error = r.error
     } else {
-      const resultado = await supabase.from('turnos').insert([datos])
-      error = resultado.error
+      const r = await supabase.from('turnos').insert([datos])
+      error = r.error
     }
-
     if (error) {
-      console.log('error al guardar', error)
       alert('No se pudo guardar: ' + error.message)
     } else {
       limpiarFormulario()
@@ -82,15 +91,9 @@ export default function Turnos() {
   async function eliminarTurno(id) {
     const confirmar = window.confirm('¿Seguro que querés eliminar este turno?')
     if (!confirmar) return
-
     const { error } = await supabase.from('turnos').delete().eq('id', id)
-
-    if (error) {
-      console.log('error al eliminar', error)
-      alert('No se pudo eliminar: ' + error.message)
-    } else {
-      obtenerTurnos()
-    }
+    if (error) alert('No se pudo eliminar: ' + error.message)
+    else obtenerTurnos()
   }
 
   function Dato({ titulo, valor }) {
@@ -102,25 +105,48 @@ export default function Turnos() {
     )
   }
 
+  const mascotasFiltradas = mascotas.filter((m) =>
+    nombreConDueño(m).toLowerCase().includes(busquedaMascota.toLowerCase())
+  )
+
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="px-12 py-8 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Turnos</h1>
 
-      <form onSubmit={guardarTurno} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-md">
+      <form onSubmit={guardarTurno} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
           {editandoId ? 'Editar turno' : 'Nuevo turno'}
         </h2>
 
-        <div className="grid grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6 max-w-sm">
+        <div className="grid grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6">
           <label className="text-xs font-medium text-gray-700">Mascota</label>
-          <select value={mascotaId} onChange={(e) => setMascotaId(e.target.value)}>
-            <option value="">Seleccionar mascota</option>
-            {mascotas.map((mascota) => (
-              <option key={mascota.id} value={mascota.id}>
-                {mascota.nombre}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <input
+              placeholder="Escribí para buscar..."
+              value={busquedaMascota}
+              onChange={(e) => {
+                setBusquedaMascota(e.target.value)
+                setMascotaId('')
+                setMostrarOpciones(true)
+              }}
+              onFocus={() => setMostrarOpciones(true)}
+              onBlur={() => setTimeout(() => setMostrarOpciones(false), 150)}
+              className="w-full"
+            />
+            {mostrarOpciones && busquedaMascota && mascotasFiltradas.length > 0 && (
+              <div className="absolute z-10 bg-white border border-[var(--color-line)] rounded-lg mt-1 w-full max-h-48 overflow-y-auto shadow-md">
+                {mascotasFiltradas.map((mascota) => (
+                  <div
+                    key={mascota.id}
+                    onClick={() => seleccionarMascota(mascota)}
+                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100"
+                  >
+                    {nombreConDueño(mascota)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <label className="text-xs font-medium text-gray-700">Fecha</label>
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
@@ -138,13 +164,9 @@ export default function Turnos() {
         </div>
 
         <div className="flex gap-2">
-          <button type="submit">
-            {editandoId ? 'Guardar cambios' : 'Agregar turno'}
-          </button>
+          <button type="submit">{editandoId ? 'Guardar cambios' : 'Agregar turno'}</button>
           {editandoId && (
-            <button type="button" onClick={limpiarFormulario} className="!bg-gray-300 !text-gray-700">
-              Cancelar
-            </button>
+            <button type="button" onClick={limpiarFormulario} className="!bg-gray-300 !text-gray-700">Cancelar</button>
           )}
         </div>
       </form>
@@ -159,7 +181,7 @@ export default function Turnos() {
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Turno</p>
-                  <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? mascota.nombre : 'Sin mascota'}</p>
+                  <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? nombreConDueño(mascota) : 'Sin mascota'}</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button onClick={() => empezarEdicion(turno)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>

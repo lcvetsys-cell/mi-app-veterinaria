@@ -11,10 +11,12 @@ export default function Mascotas() {
   const [raza, setRaza] = useState('')
   const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [clienteId, setClienteId] = useState('')
+  const [busquedaDueño, setBusquedaDueño] = useState('')
+  const [mostrarOpciones, setMostrarOpciones] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
 
   async function obtenerMascotas() {
-const { data, error } = await supabase.from('mascotas').select('*').order('nombre', { ascending: true })
+    const { data, error } = await supabase.from('mascotas').select('*').order('nombre', { ascending: true })
     if (error) {
       console.log('error', error)
     } else {
@@ -23,7 +25,7 @@ const { data, error } = await supabase.from('mascotas').select('*').order('nombr
   }
 
   async function obtenerClientes() {
-    const { data, error } = await supabase.from('clientes').select('*')
+    const { data, error } = await supabase.from('clientes').select('*').order('nombre', { ascending: true })
     if (error) {
       console.log('error', error)
     } else {
@@ -43,6 +45,7 @@ const { data, error } = await supabase.from('mascotas').select('*').order('nombr
     setRaza('')
     setFechaNacimiento('')
     setClienteId('')
+    setBusquedaDueño('')
     setEditandoId(null)
   }
 
@@ -54,7 +57,15 @@ const { data, error } = await supabase.from('mascotas').select('*').order('nombr
     setRaza(mascota.raza || '')
     setFechaNacimiento(mascota.fecha_nacimiento || '')
     setClienteId(mascota.cliente_id || '')
+    const dueño = clientes.find((c) => c.id === mascota.cliente_id)
+    setBusquedaDueño(dueño ? `${dueño.nombre} ${dueño.apellido}` : '')
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function seleccionarDueño(cliente) {
+    setClienteId(cliente.id)
+    setBusquedaDueño(`${cliente.nombre} ${cliente.apellido}`)
+    setMostrarOpciones(false)
   }
 
   async function guardarMascota(e) {
@@ -110,16 +121,20 @@ const { data, error } = await supabase.from('mascotas').select('*').order('nombr
     )
   }
 
+  const clientesFiltrados = clientes.filter((c) =>
+    `${c.nombre} ${c.apellido}`.toLowerCase().includes(busquedaDueño.toLowerCase())
+  )
+
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="px-12 py-8 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Mascotas</h1>
 
-      <form onSubmit={guardarMascota} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-md">
+      <form onSubmit={guardarMascota} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
           {editandoId ? 'Editar mascota' : 'Nueva mascota'}
         </h2>
 
-        <div className="grid grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6 max-w-sm">
+        <div className="grid grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6">
           <label className="text-xs font-medium text-gray-700">Nombre</label>
           <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
 
@@ -144,14 +159,33 @@ const { data, error } = await supabase.from('mascotas').select('*').order('nombr
           <input type="date" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} />
 
           <label className="text-xs font-medium text-gray-700">Dueño</label>
-          <select value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
-            <option value="">Seleccionar dueño</option>
-            {clientes.map((cliente) => (
-              <option key={cliente.id} value={cliente.id}>
-                {cliente.nombre} {cliente.apellido}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <input
+              placeholder="Escribí para buscar..."
+              value={busquedaDueño}
+              onChange={(e) => {
+                setBusquedaDueño(e.target.value)
+                setClienteId('')
+                setMostrarOpciones(true)
+              }}
+              onFocus={() => setMostrarOpciones(true)}
+              onBlur={() => setTimeout(() => setMostrarOpciones(false), 150)}
+              className="w-full"
+            />
+            {mostrarOpciones && busquedaDueño && clientesFiltrados.length > 0 && (
+              <div className="absolute z-10 bg-white border border-[var(--color-line)] rounded-lg mt-1 w-full max-h-48 overflow-y-auto shadow-md">
+                {clientesFiltrados.map((cliente) => (
+                  <div
+                    key={cliente.id}
+                    onClick={() => seleccionarDueño(cliente)}
+                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100"
+                  >
+                    {cliente.nombre} {cliente.apellido}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-2">
