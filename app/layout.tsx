@@ -6,8 +6,7 @@ export const metadata = {
   description: 'Sistema de gestión veterinaria',
 }
 
-export default function RootLayout({ children }) {
-  return (
+export default function RootLayout({ children }: { children: React.ReactNode }) {  return (
     <html lang="es">
       <body>
         <Navbar />
