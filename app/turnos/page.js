@@ -13,6 +13,8 @@ export default function Turnos() {
   const [hora, setHora] = useState('')
   const [estado, setEstado] = useState('')
   const [editandoId, setEditandoId] = useState(null)
+  const [busqueda, setBusqueda] = useState('')
+  const [enviandoId, setEnviandoId] = useState(null)
 
   async function obtenerTurnos() {
     const { data, error } = await supabase.from('turnos').select('*').order('fecha', { ascending: true })
@@ -96,6 +98,40 @@ export default function Turnos() {
     else obtenerTurnos()
   }
 
+  async function enviarWhatsapp(turno) {
+    const mascota = mascotas.find((m) => m.id === turno.mascota_id)
+    const dueño = mascota && clientes.find((c) => c.id === mascota.cliente_id)
+
+    if (!dueño || !dueño.telefono) {
+      alert('Este cliente no tiene teléfono cargado')
+      return
+    }
+
+    const mensaje = `Hola ${dueño.nombre}! Te recordamos el turno de ${mascota.nombre} el ${turno.fecha} a las ${turno.hora}. Saludos, LC Vet.`
+
+    setEnviandoId(turno.id)
+
+    try {
+      const respuesta = await fetch('/api/enviar-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefono: dueño.telefono, mensaje }),
+      })
+
+      const resultado = await respuesta.json()
+
+      if (resultado.error) {
+        alert('No se pudo enviar: ' + resultado.error)
+      } else {
+        alert('¡WhatsApp enviado!')
+      }
+    } catch (error) {
+      alert('Error de conexión: ' + error.message)
+    } finally {
+      setEnviandoId(null)
+    }
+  }
+
   function Dato({ titulo, valor }) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
@@ -171,31 +207,54 @@ export default function Turnos() {
         </div>
       </form>
 
+      <div className="flex gap-2 mb-6">
+        <input
+          placeholder="Buscar turno..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="max-w-sm"
+        />
+        <button type="button">Buscar</button>
+      </div>
+
       <hr className="border-t border-gray-200 mb-6" />
 
       <div className="flex flex-col gap-5">
-        {turnos.map((turno) => {
-          const mascota = mascotas.find((m) => m.id === turno.mascota_id)
-          return (
-            <div key={turno.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Turno</p>
-                  <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? nombreConDueño(mascota) : 'Sin mascota'}</p>
+        {turnos
+          .filter((turno) => {
+            const mascota = mascotas.find((m) => m.id === turno.mascota_id)
+            const dueño = mascota && clientes.find((c) => c.id === mascota.cliente_id)
+            return dueño && `${dueño.nombre} ${dueño.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
+          })
+          .map((turno) => {
+            const mascota = mascotas.find((m) => m.id === turno.mascota_id)
+            return (
+              <div key={turno.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Turno</p>
+                    <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? nombreConDueño(mascota) : 'Sin mascota'}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => enviarWhatsapp(turno)}
+                      disabled={enviandoId === turno.id}
+                      className="!bg-green-600 !text-sm"
+                    >
+                      {enviandoId === turno.id ? 'Enviando...' : 'Enviar WhatsApp'}
+                    </button>
+                    <button onClick={() => empezarEdicion(turno)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
+                    <button onClick={() => eliminarTurno(turno.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
+                  </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <button onClick={() => empezarEdicion(turno)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
-                  <button onClick={() => eliminarTurno(turno.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
+                <div className="flex flex-wrap gap-3">
+                  <Dato titulo="Fecha" valor={turno.fecha} />
+                  <Dato titulo="Hora" valor={turno.hora} />
+                  <Dato titulo="Estado" valor={turno.estado} />
                 </div>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <Dato titulo="Fecha" valor={turno.fecha} />
-                <Dato titulo="Hora" valor={turno.hora} />
-                <Dato titulo="Estado" valor={turno.estado} />
-              </div>
-            </div>
-          )
-        })}
+            )
+          })}
       </div>
     </div>
   )

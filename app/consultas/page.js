@@ -169,7 +169,7 @@ export default function Consultas() {
 
       <div className="flex gap-2 mb-6">
         <input
-          placeholder="Buscar consulta..."
+          placeholder="Buscar cliente..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           className="max-w-sm"
@@ -181,7 +181,11 @@ export default function Consultas() {
 
       <div className="flex flex-col gap-5">
         {consultas
-          .filter((consulta) => (consulta.motivo || '').toLowerCase().includes(busqueda.toLowerCase()))
+          .filter((consulta) => {
+            const mascota = mascotas.find((m) => m.id === consulta.mascota_id)
+            const dueño = mascota && clientes.find((c) => c.id === mascota.cliente_id)
+            return dueño && `${dueño.nombre} ${dueño.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
+          })
           .map((consulta) => {
             const mascota = mascotas.find((m) => m.id === consulta.mascota_id)
             return (

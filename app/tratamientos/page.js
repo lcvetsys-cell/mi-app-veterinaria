@@ -15,6 +15,8 @@ export default function Tratamientos() {
   const [fechaProxima, setFechaProxima] = useState('')
   const [notas, setNotas] = useState('')
   const [editandoId, setEditandoId] = useState(null)
+  const [busqueda, setBusqueda] = useState('')
+  const [enviandoId, setEnviandoId] = useState(null)
 
   async function obtenerTratamientos() {
     const { data, error } = await supabase.from('tratamientos').select('*').order('fecha_proxima', { ascending: true })
@@ -109,6 +111,40 @@ export default function Tratamientos() {
     else obtenerTratamientos()
   }
 
+  async function enviarWhatsapp(tratamiento) {
+    const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
+    const dueño = mascota && clientes.find((c) => c.id === mascota.cliente_id)
+
+    if (!dueño || !dueño.telefono) {
+      alert('Este cliente no tiene teléfono cargado')
+      return
+    }
+
+    const mensaje = `Hola ${dueño.nombre}! Te recordamos que ${mascota.nombre} tiene "${tratamiento.nombre}" (${tratamiento.tipo}) programado para el ${tratamiento.fecha_proxima}. Saludos, LC Vet.`
+
+    setEnviandoId(tratamiento.id)
+
+    try {
+      const respuesta = await fetch('/api/enviar-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefono: dueño.telefono, mensaje }),
+      })
+
+      const resultado = await respuesta.json()
+
+      if (resultado.error) {
+        alert('No se pudo enviar: ' + resultado.error)
+      } else {
+        alert('¡WhatsApp enviado!')
+      }
+    } catch (error) {
+      alert('Error de conexión: ' + error.message)
+    } finally {
+      setEnviandoId(null)
+    }
+  }
+
   function Dato({ titulo, valor }) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
@@ -190,33 +226,56 @@ export default function Tratamientos() {
         </div>
       </form>
 
+      <div className="flex gap-2 mb-6">
+        <input
+          placeholder="Buscar tratamiento..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="max-w-sm"
+        />
+        <button type="button">Buscar</button>
+      </div>
+
       <hr className="border-t border-gray-200 mb-6" />
 
       <div className="flex flex-col gap-5">
-        {tratamientos.map((tratamiento) => {
-          const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
-          return (
-            <div key={tratamiento.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Tratamiento</p>
-                  <p className="text-xl font-semibold text-[var(--color-teal)]">{tratamiento.nombre || 'Sin nombre'}</p>
+        {tratamientos
+          .filter((tratamiento) => {
+            const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
+            const dueño = mascota && clientes.find((c) => c.id === mascota.cliente_id)
+            return dueño && `${dueño.nombre} ${dueño.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
+          })
+          .map((tratamiento) => {
+            const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
+            return (
+              <div key={tratamiento.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Tratamiento</p>
+                    <p className="text-xl font-semibold text-[var(--color-teal)]">{tratamiento.nombre || 'Sin nombre'}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => enviarWhatsapp(tratamiento)}
+                      disabled={enviandoId === tratamiento.id}
+                      className="!bg-green-600 !text-sm"
+                    >
+                      {enviandoId === tratamiento.id ? 'Enviando...' : 'Enviar WhatsApp'}
+                    </button>
+                    <button onClick={() => empezarEdicion(tratamiento)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
+                    <button onClick={() => eliminarTratamiento(tratamiento.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
+                  </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <button onClick={() => empezarEdicion(tratamiento)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
-                  <button onClick={() => eliminarTratamiento(tratamiento.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
+                <div className="flex flex-wrap gap-3">
+                  <Dato titulo="Mascota" valor={mascota ? nombreConDueño(mascota) : 'Sin mascota'} />
+                  <Dato titulo="Tipo" valor={tratamiento.tipo} />
+                  <Dato titulo="Aplicación" valor={tratamiento.fecha_aplicacion} />
+                  <Dato titulo="Próxima" valor={tratamiento.fecha_proxima} />
+                  <Dato titulo="Notas" valor={tratamiento.notas} />
                 </div>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <Dato titulo="Mascota" valor={mascota ? nombreConDueño(mascota) : 'Sin mascota'} />
-                <Dato titulo="Tipo" valor={tratamiento.tipo} />
-                <Dato titulo="Aplicación" valor={tratamiento.fecha_aplicacion} />
-                <Dato titulo="Próxima" valor={tratamiento.fecha_proxima} />
-                <Dato titulo="Notas" valor={tratamiento.notas} />
-              </div>
-            </div>
-          )
-        })}
+            )
+          })}
       </div>
     </div>
   )
