@@ -51,7 +51,11 @@ export default function Buscar() {
   const tratamientosEncontrados = busqueda
     ? tratamientos.filter((t) => {
         const m = mascotas.find((x) => x.id === t.mascota_id)
-        return (t.nombre || '').toLowerCase().includes(texto) || (m && nombreDueño(m.cliente_id).toLowerCase().includes(texto))
+        return (
+          (t.nombre || '').toLowerCase().includes(texto) ||
+          (t.tipo || '').toLowerCase().includes(texto) ||
+          (m && nombreDueño(m.cliente_id).toLowerCase().includes(texto))
+        )
       })
     : []
 
