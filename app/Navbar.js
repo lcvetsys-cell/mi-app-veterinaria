@@ -18,6 +18,7 @@ export default function Navbar() {
       <Link href="/consultas">Consultas</Link>
       <Link href="/turnos">Turnos</Link>
       <Link href="/tratamientos">Tratamientos</Link>
+      <Link href="/buscar">Buscar</Link>
       <button onClick={cerrarSesion} style={{ marginLeft: 'auto' }}>Cerrar sesión</button>
     </nav>
   )
