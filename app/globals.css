@@ -29,6 +29,8 @@ input, select, textarea {
   padding: 0.5rem 0.75rem;
   background: white;
   font-size: 0.9rem;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 input:focus, select:focus {
