@@ -1,10 +1,9 @@
 import twilio from 'twilio'
 
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+
 export async function POST(request) {
   try {
-    // 1. Inicializamos el cliente DENTRO de la función
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-
     const { telefono, mensaje } = await request.json()
 
     if (!telefono || !mensaje) {
@@ -12,8 +11,7 @@ export async function POST(request) {
     }
 
     const resultado = await client.messages.create({
-      // Ojo: Asegurate que en Vercel esta variable tenga el formato "whatsapp:+549..."
-      from: process.env.TWILIO_WHATSAPP_NUMBER, 
+      from: process.env.TWILIO_WHATSAPP_NUMBER,
       to: `whatsapp:+${telefono}`,
       body: mensaje,
     })
