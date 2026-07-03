@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useSearchParams } from 'next/navigation'
 
+
 export default function Tratamientos() {
   const [tratamientos, setTratamientos] = useState([])
   const [mascotas, setMascotas] = useState([])
