@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { useSearchParams } from 'next/navigation'
 
 export default function Turnos() {
   const [turnos, setTurnos] = useState([])
@@ -15,6 +16,16 @@ export default function Turnos() {
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [enviandoId, setEnviandoId] = useState(null)
+
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const editarId = searchParams.get('editar')
+    if (editarId && turnos.length > 0) {
+      const turno = turnos.find((t) => t.id === parseInt(editarId))
+      if (turno) empezarEdicion(turno)
+    }
+  }, [searchParams, turnos])
 
   async function obtenerTurnos() {
     const { data, error } = await supabase.from('turnos').select('*').order('fecha', { ascending: true })

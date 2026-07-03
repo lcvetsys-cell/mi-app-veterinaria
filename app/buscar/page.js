@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function Buscar() {
@@ -9,6 +10,7 @@ export default function Buscar() {
   const [turnos, setTurnos] = useState([])
   const [consultas, setConsultas] = useState([])
   const [busqueda, setBusqueda] = useState('')
+  const router = useRouter()
 
   useEffect(() => {
     async function cargarTodo() {
@@ -61,8 +63,9 @@ export default function Buscar() {
 
   const turnosEncontrados = busqueda
     ? turnos.filter((tu) => {
-        const m = mascotas.find((x) => x.id === tu.mascota_id)
-        return m && nombreDueño(m.cliente_id).toLowerCase().includes(texto)
+        const mascota = mascotas.find((m) => m.id === tu.mascota_id)
+        const dueño = mascota && clientes.find((c) => c.id === mascota.cliente_id)
+        return dueño && `${dueño.nombre} ${dueño.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
       })
     : []
 
@@ -79,6 +82,17 @@ export default function Buscar() {
         <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1">{titulo}</p>
         <p className="text-sm text-gray-800">{valor || '—'}</p>
       </div>
+    )
+  }
+
+  function BotonesEditar({ ruta, id }) {
+    return (
+      <button
+        onClick={() => router.push(`/${ruta}?editar=${id}`)}
+        className="!bg-[var(--color-teal)] !text-sm shrink-0"
+      >
+        Editar
+      </button>
     )
   }
 
@@ -112,7 +126,10 @@ export default function Buscar() {
         items={clientesEncontrados}
         render={(c) => (
           <div key={c.id} className="bg-white border border-[var(--color-line)] rounded-xl p-4 shadow-sm">
-            <p className="font-semibold text-[var(--color-teal)] mb-2">{c.nombre} {c.apellido}</p>
+            <div className="flex justify-between items-center mb-2">
+              <p className="font-semibold text-[var(--color-teal)]">{c.nombre} {c.apellido}</p>
+              <BotonesEditar ruta="clientes" id={c.id} />
+            </div>
             <div className="flex flex-wrap gap-2">
               <Dato titulo="Teléfono" valor={c.telefono} />
               <Dato titulo="Email" valor={c.email} />
@@ -129,7 +146,10 @@ export default function Buscar() {
         items={mascotasEncontradas}
         render={(m) => (
           <div key={m.id} className="bg-white border border-[var(--color-line)] rounded-xl p-4 shadow-sm">
-            <p className="font-semibold text-[var(--color-teal)] mb-2">{m.nombre}</p>
+            <div className="flex justify-between items-center mb-2">
+              <p className="font-semibold text-[var(--color-teal)]">{m.nombre}</p>
+              <BotonesEditar ruta="mascotas" id={m.id} />
+            </div>
             <div className="flex flex-wrap gap-2">
               <Dato titulo="Especie" valor={m.especie} />
               <Dato titulo="Sexo" valor={m.sexo} />
@@ -146,7 +166,10 @@ export default function Buscar() {
         items={tratamientosEncontrados}
         render={(t) => (
           <div key={t.id} className="bg-white border border-[var(--color-line)] rounded-xl p-4 shadow-sm">
-            <p className="font-semibold text-[var(--color-teal)] mb-2">{t.nombre}</p>
+            <div className="flex justify-between items-center mb-2">
+              <p className="font-semibold text-[var(--color-teal)]">{t.nombre}</p>
+              <BotonesEditar ruta="tratamientos" id={t.id} />
+            </div>
             <div className="flex flex-wrap gap-2">
               <Dato titulo="Mascota" valor={nombreMascota(t.mascota_id)} />
               <Dato titulo="Tipo" valor={t.tipo} />
@@ -163,7 +186,10 @@ export default function Buscar() {
         items={turnosEncontrados}
         render={(tu) => (
           <div key={tu.id} className="bg-white border border-[var(--color-line)] rounded-xl p-4 shadow-sm">
-            <p className="font-semibold text-[var(--color-teal)] mb-2">{nombreMascota(tu.mascota_id)}</p>
+            <div className="flex justify-between items-center mb-2">
+              <p className="font-semibold text-[var(--color-teal)]">{nombreMascota(tu.mascota_id)}</p>
+              <BotonesEditar ruta="turnos" id={tu.id} />
+            </div>
             <div className="flex flex-wrap gap-2">
               <Dato titulo="Fecha" valor={tu.fecha} />
               <Dato titulo="Hora" valor={tu.hora} />
@@ -178,7 +204,10 @@ export default function Buscar() {
         items={consultasEncontradas}
         render={(co) => (
           <div key={co.id} className="bg-white border border-[var(--color-line)] rounded-xl p-4 shadow-sm">
-            <p className="font-semibold text-[var(--color-teal)] mb-2">{co.motivo || 'Sin motivo'}</p>
+            <div className="flex justify-between items-center mb-2">
+              <p className="font-semibold text-[var(--color-teal)]">{co.motivo || 'Sin motivo'}</p>
+              <BotonesEditar ruta="consultas" id={co.id} />
+            </div>
             <div className="flex flex-wrap gap-2">
               <Dato titulo="Mascota" valor={nombreMascota(co.mascota_id)} />
               <Dato titulo="Fecha" valor={co.fecha} />

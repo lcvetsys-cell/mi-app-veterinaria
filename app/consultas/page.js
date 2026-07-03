@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { useSearchParams } from 'next/navigation'
 
 export default function Consultas() {
   const [consultas, setConsultas] = useState([])
@@ -14,6 +15,16 @@ export default function Consultas() {
   const [diagnostico, setDiagnostico] = useState('')
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const editarId = searchParams.get('editar')
+    if (editarId && consultas.length > 0) {
+      const consulta = consultas.find((c) => c.id === parseInt(editarId))
+      if (consulta) empezarEdicion(consulta)
+    }
+  }, [searchParams, consultas])
 
   async function obtenerConsultas() {
     const { data, error } = await supabase.from('consultas').select('*').order('fecha', { ascending: false })

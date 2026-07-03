@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { useSearchParams } from 'next/navigation'
 
 export default function Mascotas() {
   const [mascotas, setMascotas] = useState([])
@@ -15,6 +16,16 @@ export default function Mascotas() {
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const editarId = searchParams.get('editar')
+    if (editarId && mascotas.length > 0) {
+      const mascota = mascotas.find((m) => m.id === parseInt(editarId))
+      if (mascota) empezarEdicion(mascota)
+    }
+  }, [searchParams, mascotas])
 
   async function obtenerMascotas() {
     const { data, error } = await supabase.from('mascotas').select('*').order('nombre', { ascending: true })
