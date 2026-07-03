@@ -20,7 +20,10 @@ export default function Navbar() {
       <div style={{ padding: '1rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
         {/* Logo / nombre */}
-        <span style={{ fontWeight: '600', color: 'var(--color-teal)', fontSize: '1.1rem' }}>LC Vet</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <img src="/logo-lcvet.png" alt="LC Vet" style={{ height: '40px', width: 'auto' }} />
+          <span style={{ fontWeight: '600', color: 'var(--color-teal)', fontSize: '1.1rem' }}>LC Vet</span>
+        </div>
 
         {/* Links — solo visibles en escritorio */}
         <div className="hidden sm:flex" style={{ gap: '1.5rem', alignItems: 'center' }}>
