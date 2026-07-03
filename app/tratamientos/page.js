@@ -167,7 +167,7 @@ export default function Tratamientos() {
           {editandoId ? 'Editar tratamiento' : 'Nuevo tratamiento'}
         </h2>
 
-        <div className="grid grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6">
           <label className="text-xs font-medium text-gray-700">Mascota</label>
           <div className="relative">
             <input
