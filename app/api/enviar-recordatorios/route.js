@@ -1,7 +1,4 @@
-import twilio from 'twilio'
 import { createClient } from '@supabase/supabase-js'
-
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -23,11 +20,14 @@ async function yaSeEnvio(tratamientoId) {
 }
 
 async function enviarMensaje(telefono, mensaje) {
-  return client.messages.create({
-    from: process.env.TWILIO_WHATSAPP_NUMBER,
-    to: `whatsapp:+${telefono}`,
-    body: mensaje,
-  })
+  const telefonoLimpio = telefono.replace(/[^0-9]/g, '')
+  const url = `https://api.callmebot.com/whatsapp.php?phone=${telefonoLimpio}&text=${encodeURIComponent(mensaje)}&apikey=${process.env.CALLMEBOT_API_KEY}`
+  
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error('Error al conectar con CallMeBot')
+  }
+  return { success: true }
 }
 
 export async function GET() {
