@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { supabase } from '../../lib/supabaseClient'
 
-export default function Turnos() {
+function TurnosContenido() {
   const [turnos, setTurnos] = useState([])
   const [mascotas, setMascotas] = useState([])
   const [clientes, setClientes] = useState([])
@@ -16,16 +16,7 @@ export default function Turnos() {
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [enviandoId, setEnviandoId] = useState(null)
-
   const searchParams = useSearchParams()
-
-  useEffect(() => {
-    const editarId = searchParams.get('editar')
-    if (editarId && turnos.length > 0) {
-      const turno = turnos.find((t) => t.id === parseInt(editarId))
-      if (turno) empezarEdicion(turno)
-    }
-  }, [searchParams, turnos])
 
   async function obtenerTurnos() {
     const { data, error } = await supabase.from('turnos').select('*').order('fecha', { ascending: true })
@@ -50,6 +41,14 @@ export default function Turnos() {
     obtenerMascotas()
     obtenerClientes()
   }, [])
+
+  useEffect(() => {
+    const editarId = searchParams.get('editar')
+    if (editarId && turnos.length > 0) {
+      const turno = turnos.find((t) => t.id === parseInt(editarId))
+      if (turno) empezarEdicion(turno)
+    }
+  }, [searchParams, turnos])
 
   function nombreConDueño(mascota) {
     const dueño = clientes.find((c) => c.id === mascota.cliente_id)
@@ -112,30 +111,21 @@ export default function Turnos() {
   async function enviarWhatsapp(turno) {
     const mascota = mascotas.find((m) => m.id === turno.mascota_id)
     const dueño = mascota && clientes.find((c) => c.id === mascota.cliente_id)
-
     if (!dueño || !dueño.telefono) {
       alert('Este cliente no tiene teléfono cargado')
       return
     }
-
     const mensaje = `Hola ${dueño.nombre}! Te recordamos el turno de ${mascota.nombre} el ${turno.fecha} a las ${turno.hora}. Saludos, LC Vet.`
-
     setEnviandoId(turno.id)
-
     try {
       const respuesta = await fetch('/api/enviar-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telefono: dueño.telefono, mensaje }),
       })
-
       const resultado = await respuesta.json()
-
-      if (resultado.error) {
-        alert('No se pudo enviar: ' + resultado.error)
-      } else {
-        alert('¡WhatsApp enviado!')
-      }
+      if (resultado.error) alert('No se pudo enviar: ' + resultado.error)
+      else alert('¡WhatsApp enviado!')
     } catch (error) {
       alert('Error de conexión: ' + error.message)
     } finally {
@@ -164,18 +154,13 @@ export default function Turnos() {
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
           {editandoId ? 'Editar turno' : 'Nuevo turno'}
         </h2>
-
         <div className="grid grid-cols-1 sm:grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6">
           <label className="text-xs font-medium text-gray-700">Mascota</label>
           <div className="relative">
             <input
               placeholder="Escribí para buscar..."
               value={busquedaMascota}
-              onChange={(e) => {
-                setBusquedaMascota(e.target.value)
-                setMascotaId('')
-                setMostrarOpciones(true)
-              }}
+              onChange={(e) => { setBusquedaMascota(e.target.value); setMascotaId(''); setMostrarOpciones(true) }}
               onFocus={() => setMostrarOpciones(true)}
               onBlur={() => setTimeout(() => setMostrarOpciones(false), 150)}
               className="w-full"
@@ -183,11 +168,7 @@ export default function Turnos() {
             {mostrarOpciones && busquedaMascota && mascotasFiltradas.length > 0 && (
               <div className="absolute z-10 bg-white border border-[var(--color-line)] rounded-lg mt-1 w-full max-h-48 overflow-y-auto shadow-md">
                 {mascotasFiltradas.map((mascota) => (
-                  <div
-                    key={mascota.id}
-                    onClick={() => seleccionarMascota(mascota)}
-                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100"
-                  >
+                  <div key={mascota.id} onClick={() => seleccionarMascota(mascota)} className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100">
                     {nombreConDueño(mascota)}
                   </div>
                 ))}
@@ -219,12 +200,7 @@ export default function Turnos() {
       </form>
 
       <div className="flex gap-2 mb-6">
-        <input
-          placeholder="Buscar turno..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="max-w-sm"
-        />
+        <input placeholder="Buscar turno..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
         <button type="button">Buscar</button>
       </div>
 
@@ -247,11 +223,7 @@ export default function Turnos() {
                     <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? nombreConDueño(mascota) : 'Sin mascota'}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => enviarWhatsapp(turno)}
-                      disabled={enviandoId === turno.id}
-                      className="!bg-green-600 !text-sm"
-                    >
+                    <button onClick={() => enviarWhatsapp(turno)} disabled={enviandoId === turno.id} className="!bg-green-600 !text-sm">
                       {enviandoId === turno.id ? 'Enviando...' : 'Enviar WhatsApp'}
                     </button>
                     <button onClick={() => empezarEdicion(turno)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
@@ -268,5 +240,13 @@ export default function Turnos() {
           })}
       </div>
     </div>
+  )
+}
+
+export default function Turnos() {
+  return (
+    <Suspense>
+      <TurnosContenido />
+    </Suspense>
   )
 }

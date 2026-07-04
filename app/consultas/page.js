@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { supabase } from '../../lib/supabaseClient'
 
-export default function Consultas() {
+function ConsultasContenido() {
   const [consultas, setConsultas] = useState([])
   const [mascotas, setMascotas] = useState([])
   const [clientes, setClientes] = useState([])
@@ -15,16 +15,7 @@ export default function Consultas() {
   const [diagnostico, setDiagnostico] = useState('')
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
-
   const searchParams = useSearchParams()
-
-  useEffect(() => {
-    const editarId = searchParams.get('editar')
-    if (editarId && consultas.length > 0) {
-      const consulta = consultas.find((c) => c.id === parseInt(editarId))
-      if (consulta) empezarEdicion(consulta)
-    }
-  }, [searchParams, consultas])
 
   async function obtenerConsultas() {
     const { data, error } = await supabase.from('consultas').select('*').order('fecha', { ascending: false })
@@ -49,6 +40,14 @@ export default function Consultas() {
     obtenerMascotas()
     obtenerClientes()
   }, [])
+
+  useEffect(() => {
+    const editarId = searchParams.get('editar')
+    if (editarId && consultas.length > 0) {
+      const consulta = consultas.find((c) => c.id === parseInt(editarId))
+      if (consulta) empezarEdicion(consulta)
+    }
+  }, [searchParams, consultas])
 
   function nombreConDueño(mascota) {
     const dueño = clientes.find((c) => c.id === mascota.cliente_id)
@@ -129,18 +128,13 @@ export default function Consultas() {
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
           {editandoId ? 'Editar consulta' : 'Nueva consulta'}
         </h2>
-
         <div className="grid grid-cols-1 sm:grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6">
           <label className="text-xs font-medium text-gray-700">Mascota</label>
           <div className="relative">
             <input
               placeholder="Escribí para buscar..."
               value={busquedaMascota}
-              onChange={(e) => {
-                setBusquedaMascota(e.target.value)
-                setMascotaId('')
-                setMostrarOpciones(true)
-              }}
+              onChange={(e) => { setBusquedaMascota(e.target.value); setMascotaId(''); setMostrarOpciones(true) }}
               onFocus={() => setMostrarOpciones(true)}
               onBlur={() => setTimeout(() => setMostrarOpciones(false), 150)}
               className="w-full"
@@ -148,11 +142,7 @@ export default function Consultas() {
             {mostrarOpciones && busquedaMascota && mascotasFiltradas.length > 0 && (
               <div className="absolute z-10 bg-white border border-[var(--color-line)] rounded-lg mt-1 w-full max-h-48 overflow-y-auto shadow-md">
                 {mascotasFiltradas.map((mascota) => (
-                  <div
-                    key={mascota.id}
-                    onClick={() => seleccionarMascota(mascota)}
-                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100"
-                  >
+                  <div key={mascota.id} onClick={() => seleccionarMascota(mascota)} className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100">
                     {nombreConDueño(mascota)}
                   </div>
                 ))}
@@ -179,12 +169,7 @@ export default function Consultas() {
       </form>
 
       <div className="flex gap-2 mb-6">
-        <input
-          placeholder="Buscar cliente..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="max-w-sm"
-        />
+        <input placeholder="Buscar consulta..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
         <button type="button">Buscar</button>
       </div>
 
@@ -221,5 +206,13 @@ export default function Consultas() {
           })}
       </div>
     </div>
+  )
+}
+
+export default function Consultas() {
+  return (
+    <Suspense>
+      <ConsultasContenido />
+    </Suspense>
   )
 }

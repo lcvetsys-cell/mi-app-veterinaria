@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { supabase } from '../../lib/supabaseClient'
 
-export default function Mascotas() {
+function MascotasContenido() {
   const [mascotas, setMascotas] = useState([])
   const [clientes, setClientes] = useState([])
   const [nombre, setNombre] = useState('')
@@ -16,16 +16,7 @@ export default function Mascotas() {
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
-
   const searchParams = useSearchParams()
-
-  useEffect(() => {
-    const editarId = searchParams.get('editar')
-    if (editarId && mascotas.length > 0) {
-      const mascota = mascotas.find((m) => m.id === parseInt(editarId))
-      if (mascota) empezarEdicion(mascota)
-    }
-  }, [searchParams, mascotas])
 
   async function obtenerMascotas() {
     const { data, error } = await supabase.from('mascotas').select('*').order('nombre', { ascending: true })
@@ -43,6 +34,14 @@ export default function Mascotas() {
     obtenerMascotas()
     obtenerClientes()
   }, [])
+
+  useEffect(() => {
+    const editarId = searchParams.get('editar')
+    if (editarId && mascotas.length > 0) {
+      const mascota = mascotas.find((m) => m.id === parseInt(editarId))
+      if (mascota) empezarEdicion(mascota)
+    }
+  }, [searchParams, mascotas])
 
   function limpiarFormulario() {
     setNombre('')
@@ -77,10 +76,7 @@ export default function Mascotas() {
   async function guardarMascota(e) {
     e.preventDefault()
     const datos = {
-      nombre,
-      especie,
-      sexo,
-      raza,
+      nombre, especie, sexo, raza,
       fecha_nacimiento: fechaNacimiento || null,
       cliente_id: clienteId,
     }
@@ -129,7 +125,6 @@ export default function Mascotas() {
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
           {editandoId ? 'Editar mascota' : 'Nueva mascota'}
         </h2>
-
         <div className="grid grid-cols-1 sm:grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6">
           <label className="text-xs font-medium text-gray-700">Nombre</label>
           <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
@@ -159,11 +154,7 @@ export default function Mascotas() {
             <input
               placeholder="Escribí para buscar..."
               value={busquedaDueño}
-              onChange={(e) => {
-                setBusquedaDueño(e.target.value)
-                setClienteId('')
-                setMostrarOpciones(true)
-              }}
+              onChange={(e) => { setBusquedaDueño(e.target.value); setClienteId(''); setMostrarOpciones(true) }}
               onFocus={() => setMostrarOpciones(true)}
               onBlur={() => setTimeout(() => setMostrarOpciones(false), 150)}
               className="w-full"
@@ -171,11 +162,7 @@ export default function Mascotas() {
             {mostrarOpciones && busquedaDueño && clientesFiltrados.length > 0 && (
               <div className="absolute z-10 bg-white border border-[var(--color-line)] rounded-lg mt-1 w-full max-h-48 overflow-y-auto shadow-md">
                 {clientesFiltrados.map((cliente) => (
-                  <div
-                    key={cliente.id}
-                    onClick={() => seleccionarDueño(cliente)}
-                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100"
-                  >
+                  <div key={cliente.id} onClick={() => seleccionarDueño(cliente)} className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100">
                     {cliente.nombre} {cliente.apellido}
                   </div>
                 ))}
@@ -193,12 +180,7 @@ export default function Mascotas() {
       </form>
 
       <div className="flex gap-2 mb-6">
-        <input
-          placeholder="Buscar cliente..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="max-w-sm"
-        />
+        <input placeholder="Buscar mascota..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
         <button type="button">Buscar</button>
       </div>
 
@@ -233,5 +215,13 @@ export default function Mascotas() {
           })}
       </div>
     </div>
+  )
+}
+
+export default function Mascotas() {
+  return (
+    <Suspense>
+      <MascotasContenido />
+    </Suspense>
   )
 }

@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { supabase } from '../../lib/supabaseClient'
 
-export default function Clientes() {
+function ClientesContenido() {
   const [clientes, setClientes] = useState([])
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
@@ -14,16 +14,7 @@ export default function Clientes() {
   const [fechaReg, setFechaReg] = useState('')
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
-
   const searchParams = useSearchParams()
-
-  useEffect(() => {
-    const editarId = searchParams.get('editar')
-    if (editarId && clientes.length > 0) {
-      const cliente = clientes.find((c) => c.id === parseInt(editarId))
-      if (cliente) empezarEdicion(cliente)
-    }
-  }, [searchParams, clientes])
 
   async function obtenerClientes() {
     const { data, error } = await supabase.from('clientes').select('*').order('nombre', { ascending: true })
@@ -34,6 +25,14 @@ export default function Clientes() {
   useEffect(() => {
     obtenerClientes()
   }, [])
+
+  useEffect(() => {
+    const editarId = searchParams.get('editar')
+    if (editarId && clientes.length > 0) {
+      const cliente = clientes.find((c) => c.id === parseInt(editarId))
+      if (cliente) empezarEdicion(cliente)
+    }
+  }, [searchParams, clientes])
 
   function limpiarFormulario() {
     setNombre('')
@@ -61,11 +60,7 @@ export default function Clientes() {
   async function guardarCliente(e) {
     e.preventDefault()
     const datos = {
-      nombre,
-      apellido,
-      telefono,
-      email,
-      direccion,
+      nombre, apellido, telefono, email, direccion,
       fecha_nac: fechaNac || null,
       fecha_reg: fechaReg || null,
     }
@@ -110,30 +105,22 @@ export default function Clientes() {
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
           {editandoId ? 'Editar cliente' : 'Nuevo cliente'}
         </h2>
-
         <div className="grid grid-cols-1 sm:grid-cols-[7rem_1fr] items-center gap-y-3 gap-x-3 mb-6">
           <label className="text-xs font-medium text-gray-700">Nombre</label>
           <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-
           <label className="text-xs font-medium text-gray-700">Apellido</label>
           <input placeholder="Apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} />
-
           <label className="text-xs font-medium text-gray-700">Teléfono</label>
           <input placeholder="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
-
           <label className="text-xs font-medium text-gray-700">Email</label>
           <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-
           <label className="text-xs font-medium text-gray-700">Dirección</label>
           <input placeholder="Dirección" value={direccion} onChange={(e) => setDireccion(e.target.value)} />
-
           <label className="text-xs font-medium text-gray-700">Nacimiento</label>
           <input type="date" value={fechaNac} onChange={(e) => setFechaNac(e.target.value)} />
-
           <label className="text-xs font-medium text-gray-700">Registro</label>
           <input type="date" value={fechaReg} onChange={(e) => setFechaReg(e.target.value)} />
         </div>
-
         <div className="flex gap-2">
           <button type="submit">{editandoId ? 'Guardar cambios' : 'Agregar cliente'}</button>
           {editandoId && (
@@ -177,5 +164,13 @@ export default function Clientes() {
           ))}
       </div>
     </div>
+  )
+}
+
+export default function Clientes() {
+  return (
+    <Suspense>
+      <ClientesContenido />
+    </Suspense>
   )
 }
