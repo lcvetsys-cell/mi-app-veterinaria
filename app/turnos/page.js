@@ -222,7 +222,7 @@ function TurnosContenido() {
                     <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Turno</p>
                     <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? nombreConDueño(mascota) : 'Sin mascota'}</p>
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex flex-wrap gap-2 justify-end">
                     <button onClick={() => enviarWhatsapp(turno)} disabled={enviandoId === turno.id} className="!bg-green-600 !text-sm">
                       {enviandoId === turno.id ? 'Enviando...' : 'Enviar WhatsApp'}
                     </button>

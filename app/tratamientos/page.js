@@ -239,7 +239,7 @@ function TratamientosContenido() {
                     <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Tratamiento</p>
                     <p className="text-xl font-semibold text-[var(--color-teal)]">{tratamiento.nombre || 'Sin nombre'}</p>
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex flex-wrap gap-2 justify-end">
                     <button onClick={() => enviarWhatsapp(tratamiento)} disabled={enviandoId === tratamiento.id} className="!bg-green-600 !text-sm">
                       {enviandoId === tratamiento.id ? 'Enviando...' : 'Enviar WhatsApp'}
                     </button>
