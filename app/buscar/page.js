@@ -154,6 +154,9 @@ export default function Buscar() {
                           <Dato titulo="Raza" valor={m.raza} />
                           <Dato titulo="Nacimiento" valor={m.fecha_nacimiento} />
                           <Dato titulo="Estado" valor={m.estado === 'fallecida' ? 'Fallecida' : 'Activa'} />
+                          {m.estado === 'fallecida' && (
+                            <Dato titulo="Fallecimiento" valor={m.fecha_fallecimiento} />
+                          )}
                         </div>
                         <button onClick={() => router.push(`/mascotas?editar=${m.id}`)} className="!bg-[var(--color-teal)] !text-sm shrink-0 ml-2">Editar</button>
                       </div>

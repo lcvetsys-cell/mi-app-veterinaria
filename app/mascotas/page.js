@@ -11,6 +11,7 @@ function MascotasContenido() {
   const [sexo, setSexo] = useState('')
   const [raza, setRaza] = useState('')
   const [fechaNacimiento, setFechaNacimiento] = useState('')
+  const [fechaFallecimiento, setFechaFallecimiento] = useState('')
   const [estado, setEstado] = useState('activa')
   const [clienteId, setClienteId] = useState('')
   const [busquedaDueño, setBusquedaDueño] = useState('')
@@ -50,6 +51,7 @@ function MascotasContenido() {
     setSexo('')
     setRaza('')
     setFechaNacimiento('')
+    setFechaFallecimiento('')
     setEstado('activa')
     setClienteId('')
     setBusquedaDueño('')
@@ -63,6 +65,7 @@ function MascotasContenido() {
     setSexo(mascota.sexo || '')
     setRaza(mascota.raza || '')
     setFechaNacimiento(mascota.fecha_nacimiento || '')
+    setFechaFallecimiento(mascota.fecha_fallecimiento || '')
     setEstado(mascota.estado || 'activa')
     setClienteId(mascota.cliente_id || '')
     const dueño = clientes.find((c) => c.id === mascota.cliente_id)
@@ -81,6 +84,7 @@ function MascotasContenido() {
     const datos = {
       nombre, especie, sexo, raza,
       fecha_nacimiento: fechaNacimiento || null,
+      fecha_fallecimiento: fechaFallecimiento || null,
       estado,
       cliente_id: clienteId,
     }
@@ -159,6 +163,13 @@ function MascotasContenido() {
             <option value="fallecida">Fallecida</option>
           </select>
 
+          {estado === 'fallecida' && (
+            <>
+              <label className="text-xs font-medium text-gray-700">Fallecimiento</label>
+              <input type="date" value={fechaFallecimiento} onChange={(e) => setFechaFallecimiento(e.target.value)} />
+            </>
+          )}
+
           <label className="text-xs font-medium text-gray-700">Dueño</label>
           <div className="relative">
             <input
@@ -224,6 +235,9 @@ function MascotasContenido() {
                   <Dato titulo="Raza" valor={mascota.raza} />
                   <Dato titulo="Nacimiento" valor={mascota.fecha_nacimiento} />
                   <Dato titulo="Estado" valor={mascota.estado === 'fallecida' ? 'Fallecida' : 'Activa'} />
+                  {mascota.estado === 'fallecida' && (
+                    <Dato titulo="Fallecimiento" valor={mascota.fecha_fallecimiento} />
+                  )}
                   <Dato titulo="Dueño" valor={dueño ? `${dueño.nombre} ${dueño.apellido}` : null} />
                 </div>
               </div>
