@@ -30,52 +30,6 @@ export default function Buscar() {
     cargarTodo()
   }, [])
 
-  function nombreDueño(clienteId) {
-    const c = clientes.find((x) => x.id === clienteId)
-    return c ? `${c.nombre} ${c.apellido}` : ''
-  }
-
-  function nombreMascota(mascotaId) {
-    const m = mascotas.find((x) => x.id === mascotaId)
-    return m ? m.nombre : ''
-  }
-
-  const texto = busqueda.toLowerCase()
-
-  const clientesEncontrados = busqueda
-    ? clientes.filter((c) => `${c.nombre} ${c.apellido}`.toLowerCase().includes(texto))
-    : []
-
-  const mascotasEncontradas = busqueda
-    ? mascotas.filter((m) => m.nombre.toLowerCase().includes(texto) || nombreDueño(m.cliente_id).toLowerCase().includes(texto))
-    : []
-
-  const tratamientosEncontrados = busqueda
-    ? tratamientos.filter((t) => {
-        const m = mascotas.find((x) => x.id === t.mascota_id)
-        return (
-          (t.nombre || '').toLowerCase().includes(texto) ||
-          (t.tipo || '').toLowerCase().includes(texto) ||
-          (m && nombreDueño(m.cliente_id).toLowerCase().includes(texto))
-        )
-      })
-    : []
-
-  const turnosEncontrados = busqueda
-    ? turnos.filter((tu) => {
-        const mascota = mascotas.find((m) => m.id === tu.mascota_id)
-        const dueño = mascota && clientes.find((c) => c.id === mascota.cliente_id)
-        return dueño && `${dueño.nombre} ${dueño.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
-      })
-    : []
-
-  const consultasEncontradas = busqueda
-    ? consultas.filter((co) => {
-        const m = mascotas.find((x) => x.id === co.mascota_id)
-        return (co.motivo || '').toLowerCase().includes(texto) || (m && nombreDueño(m.cliente_id).toLowerCase().includes(texto))
-      })
-    : []
-
   function Dato({ titulo, valor }) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
@@ -85,137 +39,148 @@ export default function Buscar() {
     )
   }
 
-  function BotonesEditar({ ruta, id }) {
-    return (
-      <button
-        onClick={() => router.push(`/${ruta}?editar=${id}`)}
-        className="!bg-[var(--color-teal)] !text-sm shrink-0"
-      >
-        Editar
-      </button>
-    )
-  }
-
-  function Seccion({ titulo, items, render }) {
-    if (busqueda === '') return null
-    return (
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-3 text-[var(--color-violet)]">{titulo} ({items.length})</h2>
-        {items.length === 0 ? (
-          <p className="text-sm text-gray-400">Sin resultados</p>
-        ) : (
-          <div className="flex flex-col gap-3">{items.map(render)}</div>
-        )}
-      </div>
-    )
-  }
+  const clientesFiltrados = busqueda
+    ? clientes.filter((c) =>
+        `${c.nombre} ${c.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
+      )
+    : []
 
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Búsqueda general</h1>
 
       <input
-        placeholder="Buscar cliente, mascota, tratamiento..."
+        placeholder="Buscar por nombre de cliente..."
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
         className="w-full max-w-xl mb-8"
       />
 
-      <Seccion
-        titulo="Clientes"
-        items={clientesEncontrados}
-        render={(c) => (
-          <div key={c.id} className="bg-white border border-[var(--color-line)] rounded-xl p-4 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <p className="font-semibold text-[var(--color-teal)]">{c.nombre} {c.apellido}</p>
-              <BotonesEditar ruta="clientes" id={c.id} />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Dato titulo="Teléfono" valor={c.telefono} />
-              <Dato titulo="Email" valor={c.email} />
-              <Dato titulo="Dirección" valor={c.direccion} />
-              <Dato titulo="Nacimiento" valor={c.fecha_nac} />
-              <Dato titulo="Registro" valor={c.fecha_reg} />
-            </div>
-          </div>
-        )}
-      />
+      {busqueda && clientesFiltrados.length === 0 && (
+        <p className="text-sm text-gray-400">Sin resultados para "{busqueda}"</p>
+      )}
 
-      <Seccion
-        titulo="Mascotas"
-        items={mascotasEncontradas}
-        render={(m) => (
-          <div key={m.id} className="bg-white border border-[var(--color-line)] rounded-xl p-4 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <p className="font-semibold text-[var(--color-teal)]">{m.nombre}</p>
-              <BotonesEditar ruta="mascotas" id={m.id} />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Dato titulo="Especie" valor={m.especie} />
-              <Dato titulo="Sexo" valor={m.sexo} />
-              <Dato titulo="Raza" valor={m.raza} />
-              <Dato titulo="Nacimiento" valor={m.fecha_nacimiento} />
-              <Dato titulo="Dueño" valor={nombreDueño(m.cliente_id)} />
-            </div>
-          </div>
-        )}
-      />
+      <div className="flex flex-col gap-10">
+        {clientesFiltrados.map((cliente) => {
+          const mascotasCliente = mascotas.filter((m) => m.cliente_id === cliente.id)
+          const mascotaIds = mascotasCliente.map((m) => m.id)
+          const turnosCliente = turnos.filter((t) => mascotaIds.includes(t.mascota_id))
+          const tratamientosCliente = tratamientos.filter((t) => mascotaIds.includes(t.mascota_id))
+          const consultasCliente = consultas.filter((c) => mascotaIds.includes(c.mascota_id))
 
-      <Seccion
-        titulo="Tratamientos"
-        items={tratamientosEncontrados}
-        render={(t) => (
-          <div key={t.id} className="bg-white border border-[var(--color-line)] rounded-xl p-4 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <p className="font-semibold text-[var(--color-teal)]">{t.nombre}</p>
-              <BotonesEditar ruta="tratamientos" id={t.id} />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Dato titulo="Mascota" valor={nombreMascota(t.mascota_id)} />
-              <Dato titulo="Tipo" valor={t.tipo} />
-              <Dato titulo="Aplicación" valor={t.fecha_aplicacion} />
-              <Dato titulo="Próxima" valor={t.fecha_proxima} />
-              <Dato titulo="Notas" valor={t.notas} />
-            </div>
-          </div>
-        )}
-      />
+          return (
+            <div key={cliente.id} className="bg-white border-2 border-[var(--color-teal)] rounded-xl p-6 shadow-sm">
 
-      <Seccion
-        titulo="Turnos"
-        items={turnosEncontrados}
-        render={(tu) => (
-          <div key={tu.id} className="bg-white border border-[var(--color-line)] rounded-xl p-4 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <p className="font-semibold text-[var(--color-teal)]">{nombreMascota(tu.mascota_id)}</p>
-              <BotonesEditar ruta="turnos" id={tu.id} />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Dato titulo="Fecha" valor={tu.fecha} />
-              <Dato titulo="Hora" valor={tu.hora} />
-              <Dato titulo="Estado" valor={tu.estado} />
-            </div>
-          </div>
-        )}
-      />
+              {/* Cliente */}
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Cliente</p>
+                  <p className="text-2xl font-semibold text-[var(--color-teal)]">{cliente.nombre} {cliente.apellido}</p>
+                </div>
+                <button onClick={() => router.push(`/clientes?editar=${cliente.id}`)} className="!bg-[var(--color-teal)] !text-sm shrink-0">Editar</button>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-6">
+                <Dato titulo="Teléfono" valor={cliente.telefono} />
+                <Dato titulo="Email" valor={cliente.email} />
+                <Dato titulo="Dirección" valor={cliente.direccion} />
+                <Dato titulo="Nacimiento" valor={cliente.fecha_nac} />
+                <Dato titulo="Registro" valor={cliente.fecha_reg} />
+              </div>
 
-      <Seccion
-        titulo="Consultas"
-        items={consultasEncontradas}
-        render={(co) => (
-          <div key={co.id} className="bg-white border border-[var(--color-line)] rounded-xl p-4 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <p className="font-semibold text-[var(--color-teal)]">{co.motivo || 'Sin motivo'}</p>
-              <BotonesEditar ruta="consultas" id={co.id} />
+              {/* Mascotas */}
+              {mascotasCliente.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-sm font-semibold text-[var(--color-violet)] mb-2">Mascotas ({mascotasCliente.length})</p>
+                  <div className="flex flex-col gap-2">
+                    {mascotasCliente.map((m) => (
+                      <div key={m.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex justify-between items-start">
+                        <div className="flex flex-wrap gap-2">
+                          <Dato titulo="Nombre" valor={m.nombre} />
+                          <Dato titulo="Especie" valor={m.especie} />
+                          <Dato titulo="Sexo" valor={m.sexo} />
+                          <Dato titulo="Raza" valor={m.raza} />
+                          <Dato titulo="Nacimiento" valor={m.fecha_nacimiento} />
+                        </div>
+                        <button onClick={() => router.push(`/mascotas?editar=${m.id}`)} className="!bg-[var(--color-teal)] !text-sm shrink-0 ml-2">Editar</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Turnos */}
+              {turnosCliente.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-sm font-semibold text-[var(--color-violet)] mb-2">Turnos ({turnosCliente.length})</p>
+                  <div className="flex flex-col gap-2">
+                    {turnosCliente.map((t) => {
+                      const mascota = mascotas.find((m) => m.id === t.mascota_id)
+                      return (
+                        <div key={t.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex justify-between items-start">
+                          <div className="flex flex-wrap gap-2">
+                            <Dato titulo="Mascota" valor={mascota?.nombre} />
+                            <Dato titulo="Fecha" valor={t.fecha} />
+                            <Dato titulo="Hora" valor={t.hora} />
+                            <Dato titulo="Estado" valor={t.estado} />
+                          </div>
+                          <button onClick={() => router.push(`/turnos?editar=${t.id}`)} className="!bg-[var(--color-teal)] !text-sm shrink-0 ml-2">Editar</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Tratamientos */}
+              {tratamientosCliente.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-sm font-semibold text-[var(--color-violet)] mb-2">Tratamientos ({tratamientosCliente.length})</p>
+                  <div className="flex flex-col gap-2">
+                    {tratamientosCliente.map((t) => {
+                      const mascota = mascotas.find((m) => m.id === t.mascota_id)
+                      return (
+                        <div key={t.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex justify-between items-start">
+                          <div className="flex flex-wrap gap-2">
+                            <Dato titulo="Mascota" valor={mascota?.nombre} />
+                            <Dato titulo="Nombre" valor={t.nombre} />
+                            <Dato titulo="Tipo" valor={t.tipo} />
+                            <Dato titulo="Próxima" valor={t.fecha_proxima} />
+                          </div>
+                          <button onClick={() => router.push(`/tratamientos?editar=${t.id}`)} className="!bg-[var(--color-teal)] !text-sm shrink-0 ml-2">Editar</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Consultas */}
+              {consultasCliente.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-[var(--color-violet)] mb-2">Consultas ({consultasCliente.length})</p>
+                  <div className="flex flex-col gap-2">
+                    {consultasCliente.map((c) => {
+                      const mascota = mascotas.find((m) => m.id === c.mascota_id)
+                      return (
+                        <div key={c.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex justify-between items-start">
+                          <div className="flex flex-wrap gap-2">
+                            <Dato titulo="Mascota" valor={mascota?.nombre} />
+                            <Dato titulo="Motivo" valor={c.motivo} />
+                            <Dato titulo="Fecha" valor={c.fecha} />
+                            <Dato titulo="Diagnóstico" valor={c.diagnostico} />
+                          </div>
+                          <button onClick={() => router.push(`/consultas?editar=${c.id}`)} className="!bg-[var(--color-teal)] !text-sm shrink-0 ml-2">Editar</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Dato titulo="Mascota" valor={nombreMascota(co.mascota_id)} />
-              <Dato titulo="Fecha" valor={co.fecha} />
-              <Dato titulo="Diagnóstico" valor={co.diagnostico} />
-            </div>
-          </div>
-        )}
-      />
+          )
+        })}
+      </div>
     </div>
   )
 }
