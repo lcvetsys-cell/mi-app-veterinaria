@@ -11,6 +11,7 @@ function MascotasContenido() {
   const [sexo, setSexo] = useState('')
   const [raza, setRaza] = useState('')
   const [fechaNacimiento, setFechaNacimiento] = useState('')
+  const [estado, setEstado] = useState('activa')
   const [clienteId, setClienteId] = useState('')
   const [busquedaDueño, setBusquedaDueño] = useState('')
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
@@ -49,6 +50,7 @@ function MascotasContenido() {
     setSexo('')
     setRaza('')
     setFechaNacimiento('')
+    setEstado('activa')
     setClienteId('')
     setBusquedaDueño('')
     setEditandoId(null)
@@ -61,6 +63,7 @@ function MascotasContenido() {
     setSexo(mascota.sexo || '')
     setRaza(mascota.raza || '')
     setFechaNacimiento(mascota.fecha_nacimiento || '')
+    setEstado(mascota.estado || 'activa')
     setClienteId(mascota.cliente_id || '')
     const dueño = clientes.find((c) => c.id === mascota.cliente_id)
     setBusquedaDueño(dueño ? `${dueño.nombre} ${dueño.apellido}` : '')
@@ -78,6 +81,7 @@ function MascotasContenido() {
     const datos = {
       nombre, especie, sexo, raza,
       fecha_nacimiento: fechaNacimiento || null,
+      estado,
       cliente_id: clienteId,
     }
     let error
@@ -149,6 +153,12 @@ function MascotasContenido() {
           <label className="text-xs font-medium text-gray-700">Nacimiento</label>
           <input type="date" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} />
 
+          <label className="text-xs font-medium text-gray-700">Estado</label>
+          <select value={estado} onChange={(e) => setEstado(e.target.value)}>
+            <option value="activa">Activa</option>
+            <option value="fallecida">Fallecida</option>
+          </select>
+
           <label className="text-xs font-medium text-gray-700">Dueño</label>
           <div className="relative">
             <input
@@ -195,9 +205,14 @@ function MascotasContenido() {
           .map((mascota) => {
             const dueño = clientes.find((c) => c.id === mascota.cliente_id)
             return (
-              <div key={mascota.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div key={mascota.id} className={`bg-white border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow ${mascota.estado === 'fallecida' ? 'border-gray-300 opacity-70' : 'border-[var(--color-line)]'}`}>
                 <div className="flex justify-between items-center mb-4">
-                  <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota.nombre}</p>
+                  <div>
+                    <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota.nombre}</p>
+                    {mascota.estado === 'fallecida' && (
+                      <span className="text-xs text-gray-400 font-medium">Fallecida</span>
+                    )}
+                  </div>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => empezarEdicion(mascota)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
                     <button onClick={() => eliminarMascota(mascota.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
@@ -208,6 +223,7 @@ function MascotasContenido() {
                   <Dato titulo="Sexo" valor={mascota.sexo} />
                   <Dato titulo="Raza" valor={mascota.raza} />
                   <Dato titulo="Nacimiento" valor={mascota.fecha_nacimiento} />
+                  <Dato titulo="Estado" valor={mascota.estado === 'fallecida' ? 'Fallecida' : 'Activa'} />
                   <Dato titulo="Dueño" valor={dueño ? `${dueño.nombre} ${dueño.apellido}` : null} />
                 </div>
               </div>
