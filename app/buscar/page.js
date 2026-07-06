@@ -39,18 +39,71 @@ export default function Buscar() {
     )
   }
 
-  const clientesFiltrados = busqueda
-    ? clientes.filter((c) =>
-        `${c.nombre} ${c.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
-      )
-    : []
+  const texto = busqueda.toLowerCase()
+
+  // Encontrar IDs de clientes que coinciden con la búsqueda (por cualquier variable)
+  const clienteIdsEncontrados = new Set()
+
+  if (busqueda) {
+    // Por nombre de cliente
+    clientes.forEach((c) => {
+      if (`${c.nombre} ${c.apellido}`.toLowerCase().includes(texto)) {
+        clienteIdsEncontrados.add(c.id)
+      }
+    })
+
+    // Por nombre o estado de mascota
+    mascotas.forEach((m) => {
+      if (
+        (m.nombre || '').toLowerCase().includes(texto) ||
+        (m.especie || '').toLowerCase().includes(texto) ||
+        (m.raza || '').toLowerCase().includes(texto) ||
+        (m.estado || '').toLowerCase().includes(texto)
+      ) {
+        if (m.cliente_id) clienteIdsEncontrados.add(m.cliente_id)
+      }
+    })
+
+    // Por tratamiento
+    tratamientos.forEach((t) => {
+      if (
+        (t.nombre || '').toLowerCase().includes(texto) ||
+        (t.tipo || '').toLowerCase().includes(texto) ||
+        (t.notas || '').toLowerCase().includes(texto)
+      ) {
+        const mascota = mascotas.find((m) => m.id === t.mascota_id)
+        if (mascota?.cliente_id) clienteIdsEncontrados.add(mascota.cliente_id)
+      }
+    })
+
+    // Por consulta
+    consultas.forEach((c) => {
+      if (
+        (c.motivo || '').toLowerCase().includes(texto) ||
+        (c.diagnostico || '').toLowerCase().includes(texto)
+      ) {
+        const mascota = mascotas.find((m) => m.id === c.mascota_id)
+        if (mascota?.cliente_id) clienteIdsEncontrados.add(mascota.cliente_id)
+      }
+    })
+
+    // Por turno (estado)
+    turnos.forEach((t) => {
+      if ((t.estado || '').toLowerCase().includes(texto)) {
+        const mascota = mascotas.find((m) => m.id === t.mascota_id)
+        if (mascota?.cliente_id) clienteIdsEncontrados.add(mascota.cliente_id)
+      }
+    })
+  }
+
+  const clientesFiltrados = clientes.filter((c) => clienteIdsEncontrados.has(c.id))
 
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Búsqueda general</h1>
 
       <input
-        placeholder="Buscar por nombre de cliente..."
+        placeholder="Buscar por cliente, mascota, tratamiento, consulta..."
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
         className="w-full max-w-xl mb-8"
@@ -146,6 +199,7 @@ export default function Buscar() {
                             <Dato titulo="Nombre" valor={t.nombre} />
                             <Dato titulo="Tipo" valor={t.tipo} />
                             <Dato titulo="Próxima" valor={t.fecha_proxima} />
+                            <Dato titulo="Notas" valor={t.notas} />
                           </div>
                           <button onClick={() => router.push(`/tratamientos?editar=${t.id}`)} className="!bg-[var(--color-teal)] !text-sm shrink-0 ml-2">Editar</button>
                         </div>
