@@ -36,11 +36,20 @@ export async function GET() {
 
   const resultados = []
 
+  // --- INICIO DEL DEBUG ---
+  console.log("DEBUG FECHA HOY (UTC):", hoy)
+  console.log("DEBUG FECHA BUSCADA TURNOS:", fechaTurnos)
+  // --- FIN DEL DEBUG ---
+
   const { data: turnos } = await supabaseAdmin
     .from('turnos')
     .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
     .eq('fecha', fechaTurnos)
     .eq('recordatorio_enviado', false)
+
+  // --- INICIO DEL DEBUG ---
+  console.log("DEBUG TURNOS ENCONTRADOS:", JSON.stringify(turnos, null, 2))
+  // --- FIN DEL DEBUG ---
 
   for (const turno of turnos || []) {
     const mascota = turno.mascotas
