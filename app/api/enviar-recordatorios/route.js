@@ -36,7 +36,6 @@ export async function GET() {
 
   const resultados = []
 
-  console.log("DEBUG FECHA HOY (UTC):", hoy)
   console.log("DEBUG FECHA BUSCADA TURNOS:", fechaTurnos)
 
   const diaDespuesTurnos = sumarDias(fechaTurnos, 1)
@@ -46,7 +45,7 @@ export async function GET() {
     .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
     .gte('fecha', fechaTurnos)
     .lt('fecha', diaDespuesTurnos)
-    .eq('recordatorio_enviado', false)
+    // .eq('recordatorio_enviado', false) <- SACADO TEMPORALMENTE
 
   console.log("DEBUG TURNOS ENCONTRADOS:", JSON.stringify(turnos, null, 2))
 
