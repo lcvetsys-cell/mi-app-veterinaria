@@ -2,8 +2,12 @@ import twilio from 'twilio'
 
 export async function POST(request) {
   try {
-    // Inicializamos el cliente DENTRO de la función para evitar el error de Vercel
     const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+
+    // --- INICIO DEL DEBUG ---
+    console.log("DEBUG TWILIO ACCOUNT SID:", process.env.TWILIO_ACCOUNT_SID)
+    console.log("DEBUG FROM NUMBER:", process.env.TWILIO_WHATSAPP_NUMBER)
+    // --- FIN DEL DEBUG ---
 
     const { telefono, mensaje } = await request.json()
 
