@@ -7,7 +7,6 @@ const supabaseAdmin = createClient(
 )
 
 function sumarDias(fecha, dias) {
-  // Agregué T12:00:00 para evitar problemas de zona horaria al cambiar de día
   const f = new Date(fecha + 'T12:00:00')
   f.setDate(f.getDate() + dias)
   return f.toISOString().split('T')[0]
@@ -21,7 +20,6 @@ async function yaSeEnvio(tratamientoId) {
   return data && data.length > 0
 }
 
-// Twilio se inicializa acá adentro para evitar el error de Vercel
 async function enviarMensaje(telefono, mensaje) {
   const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   return client.messages.create({
@@ -38,7 +36,6 @@ export async function GET() {
 
   const resultados = []
 
-  // NUEVA CONSULTA: Trae la relación cruzada mascota_clientes -> clientes
   const { data: turnos } = await supabaseAdmin
     .from('turnos')
     .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
@@ -47,7 +44,6 @@ export async function GET() {
 
   for (const turno of turnos || []) {
     const mascota = turno.mascotas
-    // Extraemos todos los tutores de la mascota
     const tutores = mascota?.mascota_clientes?.map(mc => mc.clientes).filter(Boolean) || []
 
     if (tutores.length > 0) {
@@ -63,7 +59,6 @@ export async function GET() {
           }
         }
       }
-      // Si se envió al menos a un tutor, marcamos el turno como recordado
       if (enviosExitosos > 0) {
         await supabaseAdmin.from('turnos').update({ recordatorio_enviado: true }).eq('id', turno.id)
         resultados.push(`Turno enviado: ${mascota.nombre}`)
@@ -71,13 +66,12 @@ export async function GET() {
     }
   }
 
-  // NUEVA CONSULTA: Trae la relación cruzada para tratamientos
   const { data: tratamientos } = await supabaseAdmin
     .from('tratamientos')
     .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
     .eq('fecha_proxima', fechaTratamientos)
 
-  for (const tratamiento de tratamientos || []) {
+  for (const tratamiento of tratamientos || []) {
     const yaEnviado = await yaSeEnvio(tratamiento.id)
     if (yaEnviado) continue
 
