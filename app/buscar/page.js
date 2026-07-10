@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabaseClient'
 export default function Buscar() {
   const [clientes, setClientes] = useState([])
   const [mascotas, setMascotas] = useState([])
+  const [mascotaClientes, setMascotaClientes] = useState([])
   const [tratamientos, setTratamientos] = useState([])
   const [turnos, setTurnos] = useState([])
   const [consultas, setConsultas] = useState([])
@@ -14,15 +15,17 @@ export default function Buscar() {
 
   useEffect(() => {
     async function cargarTodo() {
-      const [c, m, t, tu, co] = await Promise.all([
+      const [c, m, mc, t, tu, co] = await Promise.all([
         supabase.from('clientes').select('*'),
         supabase.from('mascotas').select('*'),
+        supabase.from('mascota_clientes').select('*'),
         supabase.from('tratamientos').select('*'),
         supabase.from('turnos').select('*'),
         supabase.from('consultas').select('*'),
       ])
       setClientes(c.data || [])
       setMascotas(m.data || [])
+      setMascotaClientes(mc.data || [])
       setTratamientos(t.data || [])
       setTurnos(tu.data || [])
       setConsultas(co.data || [])
@@ -39,9 +42,21 @@ export default function Buscar() {
     )
   }
 
-  const texto = busqueda.toLowerCase()
+  function tutoresDeMascota(mascotaId) {
+    return mascotaClientes
+      .filter((mc) => mc.mascota_id === mascotaId)
+      .map((mc) => clientes.find((c) => c.id === mc.cliente_id))
+      .filter(Boolean)
+  }
 
-  // Encontrar IDs de clientes que coinciden con la búsqueda (por cualquier variable)
+  function mascotasDeCliente(clienteId) {
+    return mascotaClientes
+      .filter((mc) => mc.cliente_id === clienteId)
+      .map((mc) => mascotas.find((m) => m.id === mc.mascota_id))
+      .filter(Boolean)
+  }
+
+  const texto = busqueda.toLowerCase()
   const clienteIdsEncontrados = new Set()
 
   if (busqueda) {
@@ -52,7 +67,7 @@ export default function Buscar() {
       }
     })
 
-    // Por nombre o estado de mascota
+    // Por nombre, especie, raza o estado de mascota
     mascotas.forEach((m) => {
       if (
         (m.nombre || '').toLowerCase().includes(texto) ||
@@ -60,7 +75,7 @@ export default function Buscar() {
         (m.raza || '').toLowerCase().includes(texto) ||
         (m.estado || '').toLowerCase().includes(texto)
       ) {
-        if (m.cliente_id) clienteIdsEncontrados.add(m.cliente_id)
+        tutoresDeMascota(m.id).forEach((t) => clienteIdsEncontrados.add(t.id))
       }
     })
 
@@ -72,7 +87,7 @@ export default function Buscar() {
         (t.notas || '').toLowerCase().includes(texto)
       ) {
         const mascota = mascotas.find((m) => m.id === t.mascota_id)
-        if (mascota?.cliente_id) clienteIdsEncontrados.add(mascota.cliente_id)
+        if (mascota) tutoresDeMascota(mascota.id).forEach((tu) => clienteIdsEncontrados.add(tu.id))
       }
     })
 
@@ -83,15 +98,15 @@ export default function Buscar() {
         (c.diagnostico || '').toLowerCase().includes(texto)
       ) {
         const mascota = mascotas.find((m) => m.id === c.mascota_id)
-        if (mascota?.cliente_id) clienteIdsEncontrados.add(mascota.cliente_id)
+        if (mascota) tutoresDeMascota(mascota.id).forEach((t) => clienteIdsEncontrados.add(t.id))
       }
     })
 
-    // Por turno (estado)
+    // Por turno
     turnos.forEach((t) => {
       if ((t.estado || '').toLowerCase().includes(texto)) {
         const mascota = mascotas.find((m) => m.id === t.mascota_id)
-        if (mascota?.cliente_id) clienteIdsEncontrados.add(mascota.cliente_id)
+        if (mascota) tutoresDeMascota(mascota.id).forEach((tu) => clienteIdsEncontrados.add(tu.id))
       }
     })
   }
@@ -115,7 +130,7 @@ export default function Buscar() {
 
       <div className="flex flex-col gap-10">
         {clientesFiltrados.map((cliente) => {
-          const mascotasCliente = mascotas.filter((m) => m.cliente_id === cliente.id)
+          const mascotasCliente = mascotasDeCliente(cliente.id)
           const mascotaIds = mascotasCliente.map((m) => m.id)
           const turnosCliente = turnos.filter((t) => mascotaIds.includes(t.mascota_id))
           const tratamientosCliente = tratamientos.filter((t) => mascotaIds.includes(t.mascota_id))
@@ -145,22 +160,37 @@ export default function Buscar() {
                 <div className="mb-5">
                   <p className="text-sm font-semibold text-[var(--color-violet)] mb-2">Mascotas ({mascotasCliente.length})</p>
                   <div className="flex flex-col gap-2">
-                    {mascotasCliente.map((m) => (
-                      <div key={m.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex justify-between items-start">
-                        <div className="flex flex-wrap gap-2">
-                          <Dato titulo="Nombre" valor={m.nombre} />
-                          <Dato titulo="Especie" valor={m.especie} />
-                          <Dato titulo="Sexo" valor={m.sexo} />
-                          <Dato titulo="Raza" valor={m.raza} />
-                          <Dato titulo="Nacimiento" valor={m.fecha_nacimiento} />
-                          <Dato titulo="Estado" valor={m.estado === 'fallecida' ? 'Fallecida' : 'Activa'} />
-                          {m.estado === 'fallecida' && (
-                            <Dato titulo="Fallecimiento" valor={m.fecha_fallecimiento} />
-                          )}
+                    {mascotasCliente.map((m) => {
+                      const tutores = tutoresDeMascota(m.id)
+                      return (
+                        <div key={m.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex justify-between items-start">
+                          <div>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              <Dato titulo="Nombre" valor={m.nombre} />
+                              <Dato titulo="Especie" valor={m.especie} />
+                              <Dato titulo="Sexo" valor={m.sexo} />
+                              <Dato titulo="Raza" valor={m.raza} />
+                              <Dato titulo="Nacimiento" valor={m.fecha_nacimiento} />
+                              <Dato titulo="Estado" valor={m.estado === 'fallecida' ? 'Fallecida' : 'Activa'} />
+                              {m.estado === 'fallecida' && (
+                                <Dato titulo="Fallecimiento" valor={m.fecha_fallecimiento} />
+                              )}
+                            </div>
+                            {tutores.length > 1 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold w-full mb-1">Tutores</p>
+                                {tutores.map((t) => (
+                                  <span key={t.id} className="bg-[var(--color-teal)] text-white text-xs px-2 py-0.5 rounded-full">
+                                    {t.nombre} {t.apellido}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <button onClick={() => router.push(`/mascotas?editar=${m.id}`)} className="!bg-[var(--color-teal)] !text-sm shrink-0 ml-2">Editar</button>
                         </div>
-                        <button onClick={() => router.push(`/mascotas?editar=${m.id}`)} className="!bg-[var(--color-teal)] !text-sm shrink-0 ml-2">Editar</button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )}

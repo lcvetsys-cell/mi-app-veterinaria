@@ -7,6 +7,7 @@ function TurnosContenido() {
   const [turnos, setTurnos] = useState([])
   const [mascotas, setMascotas] = useState([])
   const [clientes, setClientes] = useState([])
+  const [mascotaClientes, setMascotaClientes] = useState([])
   const [mascotaId, setMascotaId] = useState('')
   const [busquedaMascota, setBusquedaMascota] = useState('')
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
@@ -36,10 +37,17 @@ function TurnosContenido() {
     else setClientes(data)
   }
 
+  async function obtenerMascotaClientes() {
+    const { data, error } = await supabase.from('mascota_clientes').select('*')
+    if (error) console.log('error', error)
+    else setMascotaClientes(data)
+  }
+
   useEffect(() => {
     obtenerTurnos()
     obtenerMascotas()
     obtenerClientes()
+    obtenerMascotaClientes()
   }, [])
 
   useEffect(() => {
@@ -50,9 +58,17 @@ function TurnosContenido() {
     }
   }, [searchParams, turnos])
 
-  function nombreConDueño(mascota) {
-    const dueño = clientes.find((c) => c.id === mascota.cliente_id)
-    return dueño ? `${mascota.nombre} — ${dueño.nombre} ${dueño.apellido}` : mascota.nombre
+  function tutoresDeMascota(mascotaId) {
+    return mascotaClientes
+      .filter((mc) => mc.mascota_id === mascotaId)
+      .map((mc) => clientes.find((c) => c.id === mc.cliente_id))
+      .filter(Boolean)
+  }
+
+  function nombreConTutores(mascota) {
+    const tutores = tutoresDeMascota(mascota.id)
+    if (tutores.length === 0) return mascota.nombre
+    return `${mascota.nombre} — ${tutores.map((t) => `${t.nombre} ${t.apellido}`).join(', ')}`
   }
 
   function limpiarFormulario() {
@@ -68,7 +84,7 @@ function TurnosContenido() {
     setEditandoId(turno.id)
     setMascotaId(turno.mascota_id || '')
     const mascota = mascotas.find((m) => m.id === turno.mascota_id)
-    setBusquedaMascota(mascota ? nombreConDueño(mascota) : '')
+    setBusquedaMascota(mascota ? nombreConTutores(mascota) : '')
     setFecha(turno.fecha || '')
     setHora(turno.hora || '')
     setEstado(turno.estado || '')
@@ -77,7 +93,7 @@ function TurnosContenido() {
 
   function seleccionarMascota(mascota) {
     setMascotaId(mascota.id)
-    setBusquedaMascota(nombreConDueño(mascota))
+    setBusquedaMascota(nombreConTutores(mascota))
     setMostrarOpciones(false)
   }
 
@@ -110,22 +126,26 @@ function TurnosContenido() {
 
   async function enviarWhatsapp(turno) {
     const mascota = mascotas.find((m) => m.id === turno.mascota_id)
-    const dueño = mascota && clientes.find((c) => c.id === mascota.cliente_id)
-    if (!dueño || !dueño.telefono) {
-      alert('Este cliente no tiene teléfono cargado')
+    const tutores = mascota ? tutoresDeMascota(mascota.id) : []
+
+    if (!tutores.length || !tutores[0].telefono) {
+      alert('Esta mascota no tiene tutores con teléfono cargado')
       return
     }
-    const mensaje = `Hola ${dueño.nombre}! Te recordamos el turno de ${mascota.nombre} el ${turno.fecha} a las ${turno.hora}. Saludos, LC Vet.`
+
     setEnviandoId(turno.id)
+
     try {
-      const respuesta = await fetch('/api/enviar-whatsapp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefono: dueño.telefono, mensaje }),
-      })
-      const resultado = await respuesta.json()
-      if (resultado.error) alert('No se pudo enviar: ' + resultado.error)
-      else alert('¡WhatsApp enviado!')
+      for (const tutor of tutores) {
+        if (!tutor.telefono) continue
+        const mensaje = `Hola ${tutor.nombre}! Te recordamos el turno de ${mascota.nombre} el ${turno.fecha} a las ${turno.hora}. Saludos, LC Vet.`
+        await fetch('/api/enviar-whatsapp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telefono: tutor.telefono, mensaje }),
+        })
+      }
+      alert('¡WhatsApp enviado!')
     } catch (error) {
       alert('Error de conexión: ' + error.message)
     } finally {
@@ -143,7 +163,7 @@ function TurnosContenido() {
   }
 
   const mascotasFiltradas = mascotas.filter((m) =>
-    nombreConDueño(m).toLowerCase().includes(busquedaMascota.toLowerCase())
+    nombreConTutores(m).toLowerCase().includes(busquedaMascota.toLowerCase())
   )
 
   return (
@@ -169,7 +189,7 @@ function TurnosContenido() {
               <div className="absolute z-10 bg-white border border-[var(--color-line)] rounded-lg mt-1 w-full max-h-48 overflow-y-auto shadow-md">
                 {mascotasFiltradas.map((mascota) => (
                   <div key={mascota.id} onClick={() => seleccionarMascota(mascota)} className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100">
-                    {nombreConDueño(mascota)}
+                    {nombreConTutores(mascota)}
                   </div>
                 ))}
               </div>
@@ -209,9 +229,12 @@ function TurnosContenido() {
       <div className="flex flex-col gap-5">
         {turnos
           .filter((turno) => {
+            if (busqueda === '') return true
             const mascota = mascotas.find((m) => m.id === turno.mascota_id)
-            const dueño = mascota && clientes.find((c) => c.id === mascota.cliente_id)
-            return dueño && `${dueño.nombre} ${dueño.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
+            if (!mascota) return false
+            const tutores = tutoresDeMascota(mascota.id)
+            return tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(busqueda.toLowerCase())) ||
+              mascota.nombre.toLowerCase().includes(busqueda.toLowerCase())
           })
           .map((turno) => {
             const mascota = mascotas.find((m) => m.id === turno.mascota_id)
@@ -220,9 +243,9 @@ function TurnosContenido() {
                 <div className="flex justify-between items-center mb-4">
                   <div>
                     <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Turno</p>
-                    <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? nombreConDueño(mascota) : 'Sin mascota'}</p>
+                    <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? nombreConTutores(mascota) : 'Sin mascota'}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2 justify-end">
+                  <div className="flex flex-wrap gap-2 justify-end shrink-0">
                     <button onClick={() => enviarWhatsapp(turno)} disabled={enviandoId === turno.id} className="!bg-green-600 !text-sm">
                       {enviandoId === turno.id ? 'Enviando...' : 'Enviar WhatsApp'}
                     </button>
