@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabaseClient'
 function MascotasContenido() {
   const [mascotas, setMascotas] = useState([])
   const [clientes, setClientes] = useState([])
+  const [mascotaClientes, setMascotaClientes] = useState([])
   const [nombre, setNombre] = useState('')
   const [especie, setEspecie] = useState('')
   const [sexo, setSexo] = useState('')
@@ -13,8 +14,8 @@ function MascotasContenido() {
   const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [fechaFallecimiento, setFechaFallecimiento] = useState('')
   const [estado, setEstado] = useState('activa')
-  const [clienteId, setClienteId] = useState('')
-  const [busquedaDueño, setBusquedaDueño] = useState('')
+  const [tutoresSeleccionados, setTutoresSeleccionados] = useState([])
+  const [busquedaTutor, setBusquedaTutor] = useState('')
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
@@ -32,18 +33,25 @@ function MascotasContenido() {
     else setClientes(data)
   }
 
+  async function obtenerMascotaClientes() {
+    const { data, error } = await supabase.from('mascota_clientes').select('*')
+    if (error) console.log('error', error)
+    else setMascotaClientes(data)
+  }
+
   useEffect(() => {
     obtenerMascotas()
     obtenerClientes()
+    obtenerMascotaClientes()
   }, [])
 
   useEffect(() => {
     const editarId = searchParams.get('editar')
-    if (editarId && mascotas.length > 0) {
+    if (editarId && mascotas.length > 0 && clientes.length > 0) {
       const mascota = mascotas.find((m) => m.id === parseInt(editarId))
       if (mascota) empezarEdicion(mascota)
     }
-  }, [searchParams, mascotas])
+  }, [searchParams, mascotas, clientes])
 
   function limpiarFormulario() {
     setNombre('')
@@ -53,8 +61,8 @@ function MascotasContenido() {
     setFechaNacimiento('')
     setFechaFallecimiento('')
     setEstado('activa')
-    setClienteId('')
-    setBusquedaDueño('')
+    setTutoresSeleccionados([])
+    setBusquedaTutor('')
     setEditandoId(null)
   }
 
@@ -67,41 +75,67 @@ function MascotasContenido() {
     setFechaNacimiento(mascota.fecha_nacimiento || '')
     setFechaFallecimiento(mascota.fecha_fallecimiento || '')
     setEstado(mascota.estado || 'activa')
-    setClienteId(mascota.cliente_id || '')
-    const dueño = clientes.find((c) => c.id === mascota.cliente_id)
-    setBusquedaDueño(dueño ? `${dueño.nombre} ${dueño.apellido}` : '')
+    const tutoresActuales = mascotaClientes
+      .filter((mc) => mc.mascota_id === mascota.id)
+      .map((mc) => clientes.find((c) => c.id === mc.cliente_id))
+      .filter(Boolean)
+    setTutoresSeleccionados(tutoresActuales)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function seleccionarDueño(cliente) {
-    setClienteId(cliente.id)
-    setBusquedaDueño(`${cliente.nombre} ${cliente.apellido}`)
+  function agregarTutor(cliente) {
+    if (!tutoresSeleccionados.find((t) => t.id === cliente.id)) {
+      setTutoresSeleccionados([...tutoresSeleccionados, cliente])
+    }
+    setBusquedaTutor('')
     setMostrarOpciones(false)
+  }
+
+  function quitarTutor(clienteId) {
+    setTutoresSeleccionados(tutoresSeleccionados.filter((t) => t.id !== clienteId))
   }
 
   async function guardarMascota(e) {
     e.preventDefault()
+
     const datos = {
       nombre, especie, sexo, raza,
       fecha_nacimiento: fechaNacimiento || null,
       fecha_fallecimiento: fechaFallecimiento || null,
       estado,
-      cliente_id: clienteId,
     }
+
+    let mascotaId = editandoId
     let error
+
     if (editandoId) {
       const r = await supabase.from('mascotas').update(datos).eq('id', editandoId)
       error = r.error
     } else {
-      const r = await supabase.from('mascotas').insert([datos])
+      const r = await supabase.from('mascotas').insert([datos]).select()
       error = r.error
+      if (!error) mascotaId = r.data[0].id
     }
+
     if (error) {
       alert('No se pudo guardar: ' + error.message)
-    } else {
-      limpiarFormulario()
-      obtenerMascotas()
+      return
     }
+
+    // Borrar tutores anteriores y volver a insertar los seleccionados
+    await supabase.from('mascota_clientes').delete().eq('mascota_id', mascotaId)
+
+    if (tutoresSeleccionados.length > 0) {
+      const relaciones = tutoresSeleccionados.map((t) => ({
+        mascota_id: mascotaId,
+        cliente_id: t.id,
+      }))
+      await supabase.from('mascota_clientes').insert(relaciones)
+    }
+
+    limpiarFormulario()
+    obtenerMascotas()
+    obtenerMascotaClientes()
   }
 
   async function eliminarMascota(id) {
@@ -109,7 +143,10 @@ function MascotasContenido() {
     if (!confirmar) return
     const { error } = await supabase.from('mascotas').delete().eq('id', id)
     if (error) alert('No se pudo eliminar: ' + error.message)
-    else obtenerMascotas()
+    else {
+      obtenerMascotas()
+      obtenerMascotaClientes()
+    }
   }
 
   function Dato({ titulo, valor }) {
@@ -122,7 +159,8 @@ function MascotasContenido() {
   }
 
   const clientesFiltrados = clientes.filter((c) =>
-    `${c.nombre} ${c.apellido}`.toLowerCase().includes(busquedaDueño.toLowerCase())
+    `${c.nombre} ${c.apellido}`.toLowerCase().includes(busquedaTutor.toLowerCase()) &&
+    !tutoresSeleccionados.find((t) => t.id === c.id)
   )
 
   return (
@@ -170,21 +208,39 @@ function MascotasContenido() {
             </>
           )}
 
-          <label className="text-xs font-medium text-gray-700">Dueño</label>
-          <div className="relative">
-            <input
-              placeholder="Escribí para buscar..."
-              value={busquedaDueño}
-              onChange={(e) => { setBusquedaDueño(e.target.value); setClienteId(''); setMostrarOpciones(true) }}
-              onFocus={() => setMostrarOpciones(true)}
-              onBlur={() => setTimeout(() => setMostrarOpciones(false), 150)}
-              className="w-full"
-            />
-            {mostrarOpciones && busquedaDueño && clientesFiltrados.length > 0 && (
-              <div className="absolute z-10 bg-white border border-[var(--color-line)] rounded-lg mt-1 w-full max-h-48 overflow-y-auto shadow-md">
-                {clientesFiltrados.map((cliente) => (
-                  <div key={cliente.id} onClick={() => seleccionarDueño(cliente)} className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100">
-                    {cliente.nombre} {cliente.apellido}
+          <label className="text-xs font-medium text-gray-700">Tutores</label>
+          <div>
+            <div className="relative">
+              <input
+                placeholder="Buscar y agregar tutor..."
+                value={busquedaTutor}
+                onChange={(e) => { setBusquedaTutor(e.target.value); setMostrarOpciones(true) }}
+                onFocus={() => setMostrarOpciones(true)}
+                onBlur={() => setTimeout(() => setMostrarOpciones(false), 150)}
+                className="w-full"
+              />
+              {mostrarOpciones && busquedaTutor && clientesFiltrados.length > 0 && (
+                <div className="absolute z-10 bg-white border border-[var(--color-line)] rounded-lg mt-1 w-full max-h-48 overflow-y-auto shadow-md">
+                  {clientesFiltrados.map((cliente) => (
+                    <div key={cliente.id} onClick={() => agregarTutor(cliente)} className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100">
+                      {cliente.nombre} {cliente.apellido}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {tutoresSeleccionados.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {tutoresSeleccionados.map((t) => (
+                  <div key={t.id} className="flex items-center gap-1 bg-[var(--color-teal)] text-white text-xs px-3 py-1 rounded-full">
+                    {t.nombre} {t.apellido}
+                    <button
+                      type="button"
+                      onClick={() => quitarTutor(t.id)}
+                      style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '0', marginLeft: '4px', fontSize: '14px' }}
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
@@ -210,11 +266,19 @@ function MascotasContenido() {
       <div className="flex flex-col gap-5">
         {mascotas
           .filter((mascota) => {
-            const dueño = clientes.find((c) => c.id === mascota.cliente_id)
-            return dueño && `${dueño.nombre} ${dueño.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
+            const tutores = mascotaClientes
+              .filter((mc) => mc.mascota_id === mascota.id)
+              .map((mc) => clientes.find((c) => c.id === mc.cliente_id))
+              .filter(Boolean)
+            if (busqueda === '') return true
+            return tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(busqueda.toLowerCase())) ||
+              mascota.nombre.toLowerCase().includes(busqueda.toLowerCase())
           })
           .map((mascota) => {
-            const dueño = clientes.find((c) => c.id === mascota.cliente_id)
+            const tutores = mascotaClientes
+              .filter((mc) => mc.mascota_id === mascota.id)
+              .map((mc) => clientes.find((c) => c.id === mc.cliente_id))
+              .filter(Boolean)
             return (
               <div key={mascota.id} className={`bg-white border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow ${mascota.estado === 'fallecida' ? 'border-gray-300 opacity-70' : 'border-[var(--color-line)]'}`}>
                 <div className="flex justify-between items-center mb-4">
@@ -238,8 +302,19 @@ function MascotasContenido() {
                   {mascota.estado === 'fallecida' && (
                     <Dato titulo="Fallecimiento" valor={mascota.fecha_fallecimiento} />
                   )}
-                  <Dato titulo="Dueño" valor={dueño ? `${dueño.nombre} ${dueño.apellido}` : null} />
                 </div>
+                {tutores.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-2">Tutores</p>
+                    <div className="flex flex-wrap gap-2">
+                      {tutores.map((t) => (
+                        <span key={t.id} className="bg-[var(--color-teal)] text-white text-xs px-3 py-1 rounded-full">
+                          {t.nombre} {t.apellido}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
