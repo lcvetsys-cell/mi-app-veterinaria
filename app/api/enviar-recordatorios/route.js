@@ -30,6 +30,10 @@ async function enviarMensaje(telefono, mensaje) {
 }
 
 export async function GET() {
+  // --- INICIO DEL DEBUG ---
+  console.log("DEBUG SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+  // --- FIN DEL DEBUG ---
+
   const hoy = new Date().toISOString().split('T')[0]
   const fechaTurnos = sumarDias(hoy, 2)
   const fechaTratamientos = sumarDias(hoy, 3)
@@ -45,7 +49,6 @@ export async function GET() {
     .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
     .gte('fecha', fechaTurnos)
     .lt('fecha', diaDespuesTurnos)
-    // .eq('recordatorio_enviado', false) <- SACADO TEMPORALMENTE
 
   console.log("DEBUG TURNOS ENCONTRADOS:", JSON.stringify(turnos, null, 2))
 
@@ -78,7 +81,7 @@ export async function GET() {
     .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
     .eq('fecha_proxima', fechaTratamientos)
 
-  for (const tratamiento of tratamientos || []) {
+  for (const tratamiento de tratamientos || []) {
     const yaEnviado = await yaSeEnvio(tratamiento.id)
     if (yaEnviado) continue
 
