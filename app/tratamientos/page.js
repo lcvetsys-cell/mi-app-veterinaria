@@ -135,27 +135,20 @@ function TratamientosContenido() {
     else obtenerTratamientos()
   }
 
-  async function enviarWhatsapp(tratamiento) {
+  async function enviarWhatsapp(tratamiento, tutor) {
     const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
-    const tutores = mascota ? tutoresDeMascota(mascota.id) : []
-
-    if (!tutores.length || !tutores[0].telefono) {
-      alert('Esta mascota no tiene tutores con teléfono cargado')
+    if (!tutor.telefono) {
+      alert(`${tutor.nombre} no tiene teléfono cargado`)
       return
     }
-
-    setEnviandoId(tratamiento.id)
-
+    setEnviandoId(`${tratamiento.id}-${tutor.id}`)
     try {
-      for (const tutor of tutores) {
-        if (!tutor.telefono) continue
-        const mensaje = `Hola ${tutor.nombre}! Te recordamos que ${mascota.nombre} tiene "${tratamiento.nombre}" (${tratamiento.tipo}) programado para el ${tratamiento.fecha_proxima}. Saludos, LC Vet.`
-        await fetch('/api/enviar-whatsapp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telefono: tutor.telefono, mensaje }),
-        })
-      }
+      const mensaje = `Hola ${tutor.nombre}! Te recordamos que ${mascota.nombre} tiene "${tratamiento.nombre}" (${tratamiento.tipo}) programado para el ${tratamiento.fecha_proxima}. Saludos, LC Vet.`
+      await fetch('/api/enviar-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefono: tutor.telefono, mensaje }),
+      })
       alert('¡WhatsApp enviado!')
     } catch (error) {
       alert('Error de conexión: ' + error.message)
@@ -255,17 +248,25 @@ function TratamientosContenido() {
           })
           .map((tratamiento) => {
             const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
+            const tutores = mascota ? tutoresDeMascota(mascota.id) : []
             return (
               <div key={tratamiento.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-start mb-4">
                   <div>
                     <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Tratamiento</p>
                     <p className="text-xl font-semibold text-[var(--color-teal)]">{tratamiento.nombre || 'Sin nombre'}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2 justify-end shrink-0">
-                    <button onClick={() => enviarWhatsapp(tratamiento)} disabled={enviandoId === tratamiento.id} className="!bg-green-600 !text-sm">
-                      {enviandoId === tratamiento.id ? 'Enviando...' : 'Enviar WhatsApp'}
-                    </button>
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    {tutores.map((tutor) => (
+                      <button
+                        key={tutor.id}
+                        onClick={() => enviarWhatsapp(tratamiento, tutor)}
+                        disabled={enviandoId === `${tratamiento.id}-${tutor.id}`}
+                        className="!bg-green-600 !text-sm"
+                      >
+                        {enviandoId === `${tratamiento.id}-${tutor.id}` ? 'Enviando...' : `WhatsApp ${tutor.nombre}`}
+                      </button>
+                    ))}
                     <button onClick={() => empezarEdicion(tratamiento)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
                     <button onClick={() => eliminarTratamiento(tratamiento.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
                   </div>
