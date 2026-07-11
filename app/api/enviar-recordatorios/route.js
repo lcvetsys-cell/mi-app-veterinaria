@@ -33,6 +33,24 @@ async function enviarMensaje(telefono, mensaje) {
   })
 }
 
+async function obtenerTutoresDeMascota(mascotaId) {
+  const { data: relaciones } = await supabaseAdmin
+    .from('mascota_clientes')
+    .select('cliente_id')
+    .eq('mascota_id', mascotaId)
+
+  if (!relaciones || relaciones.length === 0) return []
+
+  const clienteIds = relaciones.map((r) => r.cliente_id)
+
+  const { data: clientes } = await supabaseAdmin
+    .from('clientes')
+    .select('*')
+    .in('id', clienteIds)
+
+  return clientes || []
+}
+
 export async function GET() {
   const hoy = obtenerHoyArgentina()
   const fechaTurnos = sumarDias(hoy, 2)
@@ -40,39 +58,42 @@ export async function GET() {
 
   const resultados = []
 
+  // --- TURNOS ---
   const { data: turnos } = await supabaseAdmin
     .from('turnos')
-    .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
+    .select('*, mascotas(*)')
     .eq('fecha', fechaTurnos)
     .eq('recordatorio_enviado', false)
 
   for (const turno of turnos || []) {
     const mascota = turno.mascotas
-    const tutores = mascota?.mascota_clientes?.map(mc => mc.clientes).filter(Boolean) || []
+    if (!mascota) continue
 
-    if (tutores.length > 0) {
-      let enviosExitosos = 0
-      for (const tutor of tutores) {
-        if (tutor.telefono) {
-          const mensaje = `Hola ${tutor.nombre}! Te recordamos el turno de ${mascota.nombre} el ${turno.fecha} a las ${turno.hora}. Saludos, LC Vet.`
-          try {
-            await enviarMensaje(tutor.telefono, mensaje)
-            enviosExitosos++
-          } catch (e) {
-            resultados.push(`Error turno ${mascota.nombre} a ${tutor.nombre}: ${e.message}`)
-          }
+    const tutores = await obtenerTutoresDeMascota(mascota.id)
+
+    let enviosExitosos = 0
+    for (const tutor of tutores) {
+      if (tutor.telefono) {
+        const mensaje = `Hola ${tutor.nombre}! Te recordamos el turno de ${mascota.nombre} el ${turno.fecha} a las ${turno.hora}. Saludos, LC Vet.`
+        try {
+          await enviarMensaje(tutor.telefono, mensaje)
+          enviosExitosos++
+          resultados.push(`Turno enviado a ${tutor.nombre}: mascota ${mascota.nombre}`)
+        } catch (e) {
+          resultados.push(`Error turno ${mascota.nombre} a ${tutor.nombre}: ${e.message}`)
         }
       }
-      if (enviosExitosos > 0) {
-        await supabaseAdmin.from('turnos').update({ recordatorio_enviado: true }).eq('id', turno.id)
-        resultados.push(`Turno enviado: ${mascota.nombre}`)
-      }
+    }
+
+    if (enviosExitosos > 0) {
+      await supabaseAdmin.from('turnos').update({ recordatorio_enviado: true }).eq('id', turno.id)
     }
   }
 
+  // --- TRATAMIENTOS ---
   const { data: tratamientos } = await supabaseAdmin
     .from('tratamientos')
-    .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
+    .select('*, mascotas(*)')
     .eq('fecha_proxima', fechaTratamientos)
 
   for (const tratamiento of tratamientos || []) {
@@ -80,31 +101,31 @@ export async function GET() {
     if (yaEnviado) continue
 
     const mascota = tratamiento.mascotas
-    const tutores = mascota?.mascota_clientes?.map(mc => mc.clientes).filter(Boolean) || []
+    if (!mascota) continue
 
-    if (tutores.length > 0) {
-      let enviosExitosos = 0
-      for (const tutor of tutores) {
-        if (tutor.telefono) {
-          const mensaje = `Hola ${tutor.nombre}! Te recordamos que ${mascota.nombre} tiene "${tratamiento.nombre}" (${tratamiento.tipo}) programado para el ${tratamiento.fecha_proxima}. Saludos, LC Vet.`
-          try {
-            await enviarMensaje(tutor.telefono, mensaje)
-            enviosExitosos++
-          } catch (e) {
-            resultados.push(`Error tratamiento ${mascota.nombre} a ${tutor.nombre}: ${e.message}`)
-          }
+    const tutores = await obtenerTutoresDeMascota(mascota.id)
+
+    let enviosExitosos = 0
+    for (const tutor of tutores) {
+      if (tutor.telefono) {
+        const mensaje = `Hola ${tutor.nombre}! Te recordamos que ${mascota.nombre} tiene "${tratamiento.nombre}" (${tratamiento.tipo}) programado para el ${tratamiento.fecha_proxima}. Saludos, LC Vet.`
+        try {
+          await enviarMensaje(tutor.telefono, mensaje)
+          enviosExitosos++
+          resultados.push(`Tratamiento enviado a ${tutor.nombre}: mascota ${mascota.nombre}`)
+        } catch (e) {
+          resultados.push(`Error tratamiento ${mascota.nombre} a ${tutor.nombre}: ${e.message}`)
         }
       }
+    }
 
-      if (enviosExitosos > 0) {
-        await supabaseAdmin.from('avisos').insert([{
-          tratamiento_id: tratamiento.id,
-          canal: 'whatsapp',
-          estado_envio: 'enviado',
-          fecha_envio: new Date().toISOString(),
-        }])
-        resultados.push(`Tratamiento enviado: ${mascota.nombre}`)
-      }
+    if (enviosExitosos > 0) {
+      await supabaseAdmin.from('avisos').insert([{
+        tratamiento_id: tratamiento.id,
+        canal: 'whatsapp',
+        estado_envio: 'enviado',
+        fecha_envio: new Date().toISOString(),
+      }])
     }
   }
 
