@@ -71,7 +71,6 @@ export async function GET() {
     .from('turnos')
     .select('*, mascotas(*)')
     .eq('fecha', fechaTurnos)
-    .eq('recordatorio_enviado', false)
 
   debug.turnosEncontrados = turnos?.length || 0
   debug.errorTurnos = errorTurnos?.message || null
