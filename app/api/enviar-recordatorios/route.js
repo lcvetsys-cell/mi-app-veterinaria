@@ -56,20 +56,35 @@ export async function GET() {
   const fechaTurnos = sumarDias(hoy, 2)
   const fechaTratamientos = sumarDias(hoy, 3)
 
+  const debug = {
+    hoy,
+    fechaTurnos,
+    fechaTratamientos,
+    turnosEncontrados: 0,
+    tratamientosEncontrados: 0,
+  }
+
   const resultados = []
 
   // --- TURNOS ---
-  const { data: turnos } = await supabaseAdmin
+  const { data: turnos, error: errorTurnos } = await supabaseAdmin
     .from('turnos')
     .select('*, mascotas(*)')
     .eq('fecha', fechaTurnos)
     .eq('recordatorio_enviado', false)
 
+  debug.turnosEncontrados = turnos?.length || 0
+  debug.errorTurnos = errorTurnos?.message || null
+
   for (const turno of turnos || []) {
     const mascota = turno.mascotas
-    if (!mascota) continue
+    if (!mascota) {
+      resultados.push(`Turno ${turno.id}: sin mascota asociada`)
+      continue
+    }
 
     const tutores = await obtenerTutoresDeMascota(mascota.id)
+    resultados.push(`Turno ${turno.id} (${mascota.nombre}): ${tutores.length} tutores encontrados`)
 
     let enviosExitosos = 0
     for (const tutor of tutores) {
@@ -78,10 +93,12 @@ export async function GET() {
         try {
           await enviarMensaje(tutor.telefono, mensaje)
           enviosExitosos++
-          resultados.push(`Turno enviado a ${tutor.nombre}: mascota ${mascota.nombre}`)
+          resultados.push(`✓ WhatsApp enviado a ${tutor.nombre} (${tutor.telefono})`)
         } catch (e) {
-          resultados.push(`Error turno ${mascota.nombre} a ${tutor.nombre}: ${e.message}`)
+          resultados.push(`✗ Error enviando a ${tutor.nombre}: ${e.message}`)
         }
+      } else {
+        resultados.push(`- ${tutor.nombre} no tiene teléfono`)
       }
     }
 
@@ -91,19 +108,29 @@ export async function GET() {
   }
 
   // --- TRATAMIENTOS ---
-  const { data: tratamientos } = await supabaseAdmin
+  const { data: tratamientos, error: errorTratamientos } = await supabaseAdmin
     .from('tratamientos')
     .select('*, mascotas(*)')
     .eq('fecha_proxima', fechaTratamientos)
 
+  debug.tratamientosEncontrados = tratamientos?.length || 0
+  debug.errorTratamientos = errorTratamientos?.message || null
+
   for (const tratamiento of tratamientos || []) {
     const yaEnviado = await yaSeEnvio(tratamiento.id)
-    if (yaEnviado) continue
+    if (yaEnviado) {
+      resultados.push(`Tratamiento ${tratamiento.id}: ya enviado anteriormente`)
+      continue
+    }
 
     const mascota = tratamiento.mascotas
-    if (!mascota) continue
+    if (!mascota) {
+      resultados.push(`Tratamiento ${tratamiento.id}: sin mascota asociada`)
+      continue
+    }
 
     const tutores = await obtenerTutoresDeMascota(mascota.id)
+    resultados.push(`Tratamiento ${tratamiento.id} (${mascota.nombre}): ${tutores.length} tutores encontrados`)
 
     let enviosExitosos = 0
     for (const tutor of tutores) {
@@ -112,10 +139,12 @@ export async function GET() {
         try {
           await enviarMensaje(tutor.telefono, mensaje)
           enviosExitosos++
-          resultados.push(`Tratamiento enviado a ${tutor.nombre}: mascota ${mascota.nombre}`)
+          resultados.push(`✓ WhatsApp enviado a ${tutor.nombre} (${tutor.telefono})`)
         } catch (e) {
-          resultados.push(`Error tratamiento ${mascota.nombre} a ${tutor.nombre}: ${e.message}`)
+          resultados.push(`✗ Error enviando a ${tutor.nombre}: ${e.message}`)
         }
+      } else {
+        resultados.push(`- ${tutor.nombre} no tiene teléfono`)
       }
     }
 
@@ -129,5 +158,5 @@ export async function GET() {
     }
   }
 
-  return Response.json({ ok: true, resultados })
+  return Response.json({ ok: true, debug, resultados })
 }
