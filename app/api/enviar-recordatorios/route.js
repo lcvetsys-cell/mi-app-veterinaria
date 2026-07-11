@@ -81,7 +81,7 @@ export async function GET() {
     .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
     .eq('fecha_proxima', fechaTratamientos)
 
-  for (const tratamiento de tratamientos || []) {
+    for (const tratamiento of tratamientos || []) {
     const yaEnviado = await yaSeEnvio(tratamiento.id)
     if (yaEnviado) continue
 
