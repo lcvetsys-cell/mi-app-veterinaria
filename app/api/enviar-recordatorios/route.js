@@ -67,6 +67,13 @@ export async function GET() {
   const resultados = []
 
   // --- TURNOS ---
+  // Debug: traer TODOS los turnos sin filtro para ver qué hay
+  const { data: todosTurnos } = await supabaseAdmin
+    .from('turnos')
+    .select('id, fecha, recordatorio_enviado')
+
+  debug.todosTurnos = todosTurnos
+
   const { data: turnos, error: errorTurnos } = await supabaseAdmin
     .from('turnos')
     .select('*, mascotas(*)')
