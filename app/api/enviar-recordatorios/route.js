@@ -72,9 +72,12 @@ export async function GET() {
 
   // --- TURNOS ---
   // Debug: traer TODOS los turnos sin filtro para ver qué hay
-  const { data: todosTurnos } = await supabaseAdmin
+  const { data: todosTurnos, error: errorTodosTurnos } = await supabaseAdmin
     .from('turnos')
     .select('id, fecha, recordatorio_enviado')
+
+  debug.errorTodosTurnos = errorTodosTurnos?.message || null
+  debug.errorTodosTurnosCode = errorTodosTurnos?.code || null
 
   debug.todosTurnos = todosTurnos
 
