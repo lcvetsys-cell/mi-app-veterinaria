@@ -66,10 +66,6 @@ export async function GET() {
 
   const resultados = []
 
-  debug.urlOk = !!supabaseUrl
-  debug.keyOk = !!supabaseKey
-  debug.keyLength = supabaseKey?.length || 0
-
   // --- TURNOS ---
   // Debug: traer TODOS los turnos sin filtro para ver qué hay
   const { data: todosTurnos, error: errorTodosTurnos } = await supabaseAdmin
