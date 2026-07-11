@@ -6,6 +6,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
+function obtenerHoyArgentina() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())
+}
+
 function sumarDias(fecha, dias) {
   const f = new Date(fecha + 'T12:00:00')
   f.setDate(f.getDate() + dias)
@@ -30,27 +34,17 @@ async function enviarMensaje(telefono, mensaje) {
 }
 
 export async function GET() {
-  // --- INICIO DEL DEBUG ---
-  console.log("DEBUG SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
-  // --- FIN DEL DEBUG ---
-
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = obtenerHoyArgentina()
   const fechaTurnos = sumarDias(hoy, 2)
   const fechaTratamientos = sumarDias(hoy, 3)
 
   const resultados = []
 
-  console.log("DEBUG FECHA BUSCADA TURNOS:", fechaTurnos)
-
-  const diaDespuesTurnos = sumarDias(fechaTurnos, 1)
-
   const { data: turnos } = await supabaseAdmin
     .from('turnos')
     .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
-    .gte('fecha', fechaTurnos)
-    .lt('fecha', diaDespuesTurnos)
-
-  console.log("DEBUG TURNOS ENCONTRADOS:", JSON.stringify(turnos, null, 2))
+    .eq('fecha', fechaTurnos)
+    .eq('recordatorio_enviado', false)
 
   for (const turno of turnos || []) {
     const mascota = turno.mascotas
@@ -81,7 +75,7 @@ export async function GET() {
     .select('*, mascotas(*, mascota_clientes(*, clientes(*)))')
     .eq('fecha_proxima', fechaTratamientos)
 
-    for (const tratamiento of tratamientos || []) {
+  for (const tratamiento of tratamientos || []) {
     const yaEnviado = await yaSeEnvio(tratamiento.id)
     if (yaEnviado) continue
 
