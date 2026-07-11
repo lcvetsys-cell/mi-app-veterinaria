@@ -1,10 +1,10 @@
 import twilio from 'twilio'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey)
 
 function obtenerHoyArgentina() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())
@@ -65,6 +65,10 @@ export async function GET() {
   }
 
   const resultados = []
+
+  debug.urlOk = !!supabaseUrl
+  debug.keyOk = !!supabaseKey
+  debug.keyLength = supabaseKey?.length || 0
 
   // --- TURNOS ---
   // Debug: traer TODOS los turnos sin filtro para ver qué hay
