@@ -1,10 +1,10 @@
 import twilio from 'twilio'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey)
 
 function obtenerHoyArgentina() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())
@@ -56,20 +56,48 @@ export async function GET() {
   const fechaTurnos = sumarDias(hoy, 2)
   const fechaTratamientos = sumarDias(hoy, 3)
 
+  const debug = {
+    hoy,
+    fechaTurnos,
+    fechaTratamientos,
+    turnosEncontrados: 0,
+    tratamientosEncontrados: 0,
+  }
+
   const resultados = []
 
+  debug.urlOk = !!supabaseUrl
+  debug.keyOk = !!supabaseKey
+  debug.keyLength = supabaseKey?.length || 0
+
   // --- TURNOS ---
-  const { data: turnos } = await supabaseAdmin
+  // Debug: traer TODOS los turnos sin filtro para ver qué hay
+  const { data: todosTurnos, error: errorTodosTurnos } = await supabaseAdmin
+    .from('turnos')
+    .select('id, fecha, recordatorio_enviado')
+
+  debug.errorTodosTurnos = errorTodosTurnos?.message || null
+  debug.errorTodosTurnosCode = errorTodosTurnos?.code || null
+
+  debug.todosTurnos = todosTurnos
+
+  const { data: turnos, error: errorTurnos } = await supabaseAdmin
     .from('turnos')
     .select('*, mascotas(*)')
     .eq('fecha', fechaTurnos)
-    .eq('recordatorio_enviado', false)
+
+  debug.turnosEncontrados = turnos?.length || 0
+  debug.errorTurnos = errorTurnos?.message || null
 
   for (const turno of turnos || []) {
     const mascota = turno.mascotas
-    if (!mascota) continue
+    if (!mascota) {
+      resultados.push(`Turno ${turno.id}: sin mascota asociada`)
+      continue
+    }
 
     const tutores = await obtenerTutoresDeMascota(mascota.id)
+    resultados.push(`Turno ${turno.id} (${mascota.nombre}): ${tutores.length} tutores encontrados`)
 
     let enviosExitosos = 0
     for (const tutor of tutores) {
@@ -78,10 +106,12 @@ export async function GET() {
         try {
           await enviarMensaje(tutor.telefono, mensaje)
           enviosExitosos++
-          resultados.push(`Turno enviado a ${tutor.nombre}: mascota ${mascota.nombre}`)
+          resultados.push(`✓ WhatsApp enviado a ${tutor.nombre} (${tutor.telefono})`)
         } catch (e) {
-          resultados.push(`Error turno ${mascota.nombre} a ${tutor.nombre}: ${e.message}`)
+          resultados.push(`✗ Error enviando a ${tutor.nombre}: ${e.message}`)
         }
+      } else {
+        resultados.push(`- ${tutor.nombre} no tiene teléfono`)
       }
     }
 
@@ -91,19 +121,29 @@ export async function GET() {
   }
 
   // --- TRATAMIENTOS ---
-  const { data: tratamientos } = await supabaseAdmin
+  const { data: tratamientos, error: errorTratamientos } = await supabaseAdmin
     .from('tratamientos')
     .select('*, mascotas(*)')
     .eq('fecha_proxima', fechaTratamientos)
 
+  debug.tratamientosEncontrados = tratamientos?.length || 0
+  debug.errorTratamientos = errorTratamientos?.message || null
+
   for (const tratamiento of tratamientos || []) {
     const yaEnviado = await yaSeEnvio(tratamiento.id)
-    if (yaEnviado) continue
+    if (yaEnviado) {
+      resultados.push(`Tratamiento ${tratamiento.id}: ya enviado anteriormente`)
+      continue
+    }
 
     const mascota = tratamiento.mascotas
-    if (!mascota) continue
+    if (!mascota) {
+      resultados.push(`Tratamiento ${tratamiento.id}: sin mascota asociada`)
+      continue
+    }
 
     const tutores = await obtenerTutoresDeMascota(mascota.id)
+    resultados.push(`Tratamiento ${tratamiento.id} (${mascota.nombre}): ${tutores.length} tutores encontrados`)
 
     let enviosExitosos = 0
     for (const tutor of tutores) {
@@ -112,10 +152,12 @@ export async function GET() {
         try {
           await enviarMensaje(tutor.telefono, mensaje)
           enviosExitosos++
-          resultados.push(`Tratamiento enviado a ${tutor.nombre}: mascota ${mascota.nombre}`)
+          resultados.push(`✓ WhatsApp enviado a ${tutor.nombre} (${tutor.telefono})`)
         } catch (e) {
-          resultados.push(`Error tratamiento ${mascota.nombre} a ${tutor.nombre}: ${e.message}`)
+          resultados.push(`✗ Error enviando a ${tutor.nombre}: ${e.message}`)
         }
+      } else {
+        resultados.push(`- ${tutor.nombre} no tiene teléfono`)
       }
     }
 
@@ -129,5 +171,5 @@ export async function GET() {
     }
   }
 
-  return Response.json({ ok: true, resultados })
+  return Response.json({ ok: true, debug, resultados })
 }
