@@ -182,6 +182,7 @@ export default function Agenda() {
                   <Dato titulo="Fecha" valor={item.turno.fecha} />
                   <Dato titulo="Hora" valor={item.turno.hora} />
                   <Dato titulo="Estado" valor={item.turno.estado} />
+                  <Dato titulo="Aviso" valor={item.turno.recordatorio_enviado ? 'Avisado' : 'No avisado'} />
                   {item.tutores.map((t) => (
                     <Dato key={t.id} titulo="Tutor" valor={`${t.nombre} ${t.apellido}`} />
                   ))}
@@ -193,6 +194,7 @@ export default function Agenda() {
                   <Dato titulo="Tratamiento" valor={item.tratamiento.nombre} />
                   <Dato titulo="Tipo" valor={item.tratamiento.tipo} />
                   <Dato titulo="Fecha" valor={item.tratamiento.fecha_proxima} />
+                  <Dato titulo="Aviso" valor={item.tratamiento.avisoEnviado ? 'Avisado' : 'No avisado'} />
                   {item.tutores.map((t) => (
                     <Dato key={t.id} titulo="Tutor" valor={`${t.nombre} ${t.apellido}`} />
                   ))}
