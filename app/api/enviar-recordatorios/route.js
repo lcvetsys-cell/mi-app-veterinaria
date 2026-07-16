@@ -54,7 +54,7 @@ async function obtenerTutoresDeMascota(mascotaId) {
 export async function GET() {
   const hoy = obtenerHoyArgentina()
   const fechaTurnos = sumarDias(hoy, 2)
-  const fechaTratamientos = sumarDias(hoy, 3)
+  const fechaTratamientos = sumarDias(hoy, 2)
 
   const debug = {
     hoy,
