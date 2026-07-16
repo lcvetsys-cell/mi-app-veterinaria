@@ -50,6 +50,7 @@ export default function Agenda() {
 
   function dentroDelFiltro(fecha) {
     if (!fecha) return false
+    if (filtro === 'vencidos') return fecha < hoy()
     if (filtro === 'todos') return fecha >= hoy()
     return fecha >= hoy() && fecha <= fechaLimite()
   }
@@ -109,7 +110,10 @@ export default function Agenda() {
     })
 
   // Ordenar por fecha
-  items.sort((a, b) => a.fecha.localeCompare(b.fecha))
+  items.sort((a, b) => filtro === 'vencidos'
+    ? b.fecha.localeCompare(a.fecha)
+    : a.fecha.localeCompare(b.fecha)
+  )
 
   function Dato({ titulo, valor }) {
     return (
@@ -131,6 +135,7 @@ export default function Agenda() {
           { valor: '7', etiqueta: 'Próximos 7 días' },
           { valor: '30', etiqueta: 'Próximos 30 días' },
           { valor: 'todos', etiqueta: 'Todos' },
+          { valor: 'vencidos', etiqueta: 'Vencidos' },
         ].map((op) => (
           <button
             key={op.valor}
