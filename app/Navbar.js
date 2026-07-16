@@ -34,6 +34,7 @@ export default function Navbar() {
           <Link href="/turnos">Turnos</Link>
           <Link href="/tratamientos">Tratamientos</Link>
           <Link href="/buscar">Buscar</Link>
+          <Link href="/agenda">Agenda</Link>
           <button onClick={cerrarSesion} style={{ marginLeft: '1rem' }}>Cerrar sesión</button>
         </div>
 
@@ -54,6 +55,7 @@ export default function Navbar() {
           <Link href="/turnos" onClick={() => setMenuAbierto(false)}>Turnos</Link>
           <Link href="/tratamientos" onClick={() => setMenuAbierto(false)}>Tratamientos</Link>
           <Link href="/buscar" onClick={() => setMenuAbierto(false)}>Buscar</Link>
+          <Link href="/agenda" onClick={() => setMenuAbierto(false)}>Agenda</Link>
           <button onClick={cerrarSesion} style={{ textAlign: 'left', background: 'none', border: 'none', color: 'var(--color-coral)', fontWeight: '500', padding: '0', cursor: 'pointer', fontSize: '0.9rem' }}>
             Cerrar sesión
           </button>
