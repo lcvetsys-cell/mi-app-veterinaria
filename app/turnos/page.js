@@ -124,6 +124,18 @@ function TurnosContenido() {
     else obtenerTurnos()
   }
 
+  async function toggleAviso(id, valorActual) {
+    const { error } = await supabase
+      .from('turnos')
+      .update({ recordatorio_enviado: !valorActual })
+      .eq('id', id)
+    if (error) {
+      alert('No se pudo actualizar: ' + error.message)
+    } else {
+      obtenerTurnos()
+    }
+  }
+
   async function enviarWhatsapp(turno, tutor) {
     const mascota = mascotas.find((m) => m.id === turno.mascota_id)
     if (!tutor.telefono) {
@@ -258,7 +270,15 @@ function TurnosContenido() {
                   <Dato titulo="Fecha" valor={turno.fecha} />
                   <Dato titulo="Hora" valor={turno.hora} />
                   <Dato titulo="Estado" valor={turno.estado} />
-                  <Dato titulo="Aviso" valor={turno.recordatorio_enviado ? 'Avisado' : 'No avisado'} />
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1">Aviso</p>
+                    <button
+                      onClick={() => toggleAviso(turno.id, turno.recordatorio_enviado)}
+                      className={`!text-xs !px-3 !py-1 ${turno.recordatorio_enviado ? '!bg-green-600' : '!bg-gray-400'}`}
+                    >
+                      {turno.recordatorio_enviado ? 'Avisado' : 'No avisado'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )
