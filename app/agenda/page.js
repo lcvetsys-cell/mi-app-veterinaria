@@ -9,23 +9,26 @@ export default function Agenda() {
   const [mascotas, setMascotas] = useState([])
   const [clientes, setClientes] = useState([])
   const [mascotaClientes, setMascotaClientes] = useState([])
+  const [avisos, setAvisos] = useState([])
   const [filtro, setFiltro] = useState('7')
   const router = useRouter()
 
   useEffect(() => {
     async function cargarTodo() {
-      const [t, tr, m, c, mc] = await Promise.all([
+      const [t, tr, m, c, mc, av] = await Promise.all([
         supabase.from('turnos').select('*').order('fecha', { ascending: true }),
         supabase.from('tratamientos').select('*').order('fecha_proxima', { ascending: true }),
         supabase.from('mascotas').select('*'),
         supabase.from('clientes').select('*'),
         supabase.from('mascota_clientes').select('*'),
+        supabase.from('avisos').select('*'),
       ])
       setTurnos(t.data || [])
       setTratamientos(tr.data || [])
       setMascotas(m.data || [])
       setClientes(c.data || [])
       setMascotaClientes(mc.data || [])
+      setAvisos(av.data || [])
     }
     cargarTodo()
   }, [])
@@ -35,6 +38,10 @@ export default function Agenda() {
       .filter((mc) => mc.mascota_id === mascotaId)
       .map((mc) => clientes.find((c) => c.id === mc.cliente_id))
       .filter(Boolean)
+  }
+
+  function tratamientoFueAvisado(tratamientoId) {
+    return avisos.some((a) => a.tratamiento_id === tratamientoId)
   }
 
   function hoy() {
@@ -63,12 +70,14 @@ export default function Agenda() {
   }
 
   function colorUrgencia(dias) {
+    if (filtro === 'vencidos') return 'bg-gray-50 border-gray-300'
     if (dias <= 2) return 'bg-red-50 border-red-300'
     if (dias <= 7) return 'bg-orange-50 border-orange-300'
     return 'bg-white border-[var(--color-line)]'
   }
 
   function etiquetaUrgencia(dias) {
+    if (filtro === 'vencidos') return { texto: `Hace ${Math.abs(dias)} días`, color: 'bg-gray-400' }
     if (dias === 0) return { texto: 'Hoy', color: 'bg-red-500' }
     if (dias === 1) return { texto: 'Mañana', color: 'bg-red-400' }
     if (dias <= 2) return { texto: `En ${dias} días`, color: 'bg-red-400' }
@@ -76,7 +85,6 @@ export default function Agenda() {
     return { texto: `En ${dias} días`, color: 'bg-gray-400' }
   }
 
-  // Armar lista combinada
   const items = []
 
   turnos
@@ -109,17 +117,16 @@ export default function Agenda() {
       })
     })
 
-  // Ordenar por fecha
   items.sort((a, b) => filtro === 'vencidos'
     ? b.fecha.localeCompare(a.fecha)
     : a.fecha.localeCompare(b.fecha)
   )
 
-  function Dato({ titulo, valor }) {
+  function Dato({ titulo, valor, destacado }) {
     return (
-      <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 min-w-[100px]">
+      <div className={`border rounded-lg px-3 py-2 min-w-[100px] ${destacado ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'}`}>
         <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">{titulo}</p>
-        <p className="text-sm text-gray-800">{valor || '—'}</p>
+        <p className={`text-sm font-medium ${destacado ? 'text-green-700' : 'text-gray-800'}`}>{valor || '—'}</p>
       </div>
     )
   }
@@ -128,7 +135,6 @@ export default function Agenda() {
     <div className="px-12 py-8 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Agenda</h1>
 
-      {/* Filtro */}
       <div className="flex gap-2 mb-8 flex-wrap">
         {[
           { valor: '2', etiqueta: 'Próximos 2 días' },
@@ -157,7 +163,7 @@ export default function Agenda() {
           return (
             <div key={index} className={`border rounded-xl p-5 shadow-sm ${colorUrgencia(item.dias)}`}>
               <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <span className={`text-white text-xs font-semibold px-3 py-1 rounded-full ${urgencia.color}`}>
                     {urgencia.texto}
                   </span>
@@ -182,7 +188,11 @@ export default function Agenda() {
                   <Dato titulo="Fecha" valor={item.turno.fecha} />
                   <Dato titulo="Hora" valor={item.turno.hora} />
                   <Dato titulo="Estado" valor={item.turno.estado} />
-                  <Dato titulo="Aviso" valor={item.turno.recordatorio_enviado ? 'Avisado' : 'No avisado'} />
+                  <Dato
+                    titulo="Aviso"
+                    valor={item.turno.recordatorio_enviado ? 'Avisado' : 'No avisado'}
+                    destacado={item.turno.recordatorio_enviado}
+                  />
                   {item.tutores.map((t) => (
                     <Dato key={t.id} titulo="Tutor" valor={`${t.nombre} ${t.apellido}`} />
                   ))}
@@ -194,7 +204,11 @@ export default function Agenda() {
                   <Dato titulo="Tratamiento" valor={item.tratamiento.nombre} />
                   <Dato titulo="Tipo" valor={item.tratamiento.tipo} />
                   <Dato titulo="Fecha" valor={item.tratamiento.fecha_proxima} />
-                  <Dato titulo="Aviso" valor={item.tratamiento.avisoEnviado ? 'Avisado' : 'No avisado'} />
+                  <Dato
+                    titulo="Aviso"
+                    valor={tratamientoFueAvisado(item.tratamiento.id) ? 'Avisado' : 'No avisado'}
+                    destacado={tratamientoFueAvisado(item.tratamiento.id)}
+                  />
                   {item.tutores.map((t) => (
                     <Dato key={t.id} titulo="Tutor" valor={`${t.nombre} ${t.apellido}`} />
                   ))}
