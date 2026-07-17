@@ -8,6 +8,7 @@ function TratamientosContenido() {
   const [mascotas, setMascotas] = useState([])
   const [clientes, setClientes] = useState([])
   const [mascotaClientes, setMascotaClientes] = useState([])
+  const [avisos, setAvisos] = useState([])
   const [mascotaId, setMascotaId] = useState('')
   const [busquedaMascota, setBusquedaMascota] = useState('')
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
@@ -45,11 +46,18 @@ function TratamientosContenido() {
     else setMascotaClientes(data)
   }
 
+  async function obtenerAvisos() {
+    const { data, error } = await supabase.from('avisos').select('*')
+    if (error) console.log('error', error)
+    else setAvisos(data)
+  }
+
   useEffect(() => {
     obtenerTratamientos()
     obtenerMascotas()
     obtenerClientes()
     obtenerMascotaClientes()
+    obtenerAvisos()
   }, [])
 
   useEffect(() => {
@@ -71,6 +79,32 @@ function TratamientosContenido() {
     const tutores = tutoresDeMascota(mascota.id)
     if (tutores.length === 0) return mascota.nombre
     return `${mascota.nombre} — ${tutores.map((t) => `${t.nombre} ${t.apellido}`).join(', ')}`
+  }
+
+  function tratamientoFueAvisado(tratamientoId) {
+    return avisos.some((a) => a.tratamiento_id === tratamientoId)
+  }
+
+  async function toggleAvisoTratamiento(tratamientoId, yaAvisado) {
+    if (yaAvisado) {
+      const { error } = await supabase
+        .from('avisos')
+        .delete()
+        .eq('tratamiento_id', tratamientoId)
+      if (error) alert('No se pudo actualizar: ' + error.message)
+      else obtenerAvisos()
+    } else {
+      const { error } = await supabase
+        .from('avisos')
+        .insert([{
+          tratamiento_id: tratamientoId,
+          canal: 'manual',
+          estado_envio: 'enviado',
+          fecha_envio: new Date().toISOString(),
+        }])
+      if (error) alert('No se pudo actualizar: ' + error.message)
+      else obtenerAvisos()
+    }
   }
 
   function limpiarFormulario() {
@@ -249,6 +283,7 @@ function TratamientosContenido() {
           .map((tratamiento) => {
             const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
             const tutores = mascota ? tutoresDeMascota(mascota.id) : []
+            const avisado = tratamientoFueAvisado(tratamiento.id)
             return (
               <div key={tratamiento.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start mb-4">
@@ -277,6 +312,15 @@ function TratamientosContenido() {
                   <Dato titulo="Aplicación" valor={tratamiento.fecha_aplicacion} />
                   <Dato titulo="Próxima" valor={tratamiento.fecha_proxima} />
                   <Dato titulo="Notas" valor={tratamiento.notas} />
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1">Aviso</p>
+                    <button
+                      onClick={() => toggleAvisoTratamiento(tratamiento.id, avisado)}
+                      className={`!text-xs !px-3 !py-1 ${avisado ? '!bg-green-600' : '!bg-gray-400'}`}
+                    >
+                      {avisado ? 'Avisado' : 'No avisado'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )
