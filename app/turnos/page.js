@@ -258,6 +258,7 @@ function TurnosContenido() {
                   <Dato titulo="Fecha" valor={turno.fecha} />
                   <Dato titulo="Hora" valor={turno.hora} />
                   <Dato titulo="Estado" valor={turno.estado} />
+                  <Dato titulo="Aviso" valor={turno.recordatorio_enviado ? 'Avisado' : 'No avisado'} />
                 </div>
               </div>
             )
