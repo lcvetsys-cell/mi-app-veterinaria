@@ -33,6 +33,47 @@ export default function Agenda() {
     cargarTodo()
   }, [])
 
+  async function recargarTurnos() {
+    const { data } = await supabase.from('turnos').select('*').order('fecha', { ascending: true })
+    setTurnos(data || [])
+  }
+
+  async function recargarAvisos() {
+    const { data } = await supabase.from('avisos').select('*')
+    setAvisos(data || [])
+  }
+
+  async function toggleAvisoTurno(id, valorActual) {
+    const { error } = await supabase
+      .from('turnos')
+      .update({ recordatorio_enviado: !valorActual })
+      .eq('id', id)
+    if (error) alert('No se pudo actualizar: ' + error.message)
+    else recargarTurnos()
+  }
+
+  async function toggleAvisoTratamiento(tratamientoId, yaAvisado) {
+    if (yaAvisado) {
+      const { error } = await supabase
+        .from('avisos')
+        .delete()
+        .eq('tratamiento_id', tratamientoId)
+      if (error) alert('No se pudo actualizar: ' + error.message)
+      else recargarAvisos()
+    } else {
+      const { error } = await supabase
+        .from('avisos')
+        .insert([{
+          tratamiento_id: tratamientoId,
+          canal: 'manual',
+          estado_envio: 'enviado',
+          fecha_envio: new Date().toISOString(),
+        }])
+      if (error) alert('No se pudo actualizar: ' + error.message)
+      else recargarAvisos()
+    }
+  }
+
   function tutoresDeMascota(mascotaId) {
     return mascotaClientes
       .filter((mc) => mc.mascota_id === mascotaId)
@@ -188,32 +229,43 @@ export default function Agenda() {
                   <Dato titulo="Fecha" valor={item.turno.fecha} />
                   <Dato titulo="Hora" valor={item.turno.hora} />
                   <Dato titulo="Estado" valor={item.turno.estado} />
-                  <Dato
-                    titulo="Aviso"
-                    valor={item.turno.recordatorio_enviado ? 'Avisado' : 'No avisado'}
-                    destacado={item.turno.recordatorio_enviado}
-                  />
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1">Aviso</p>
+                    <button
+                      onClick={() => toggleAvisoTurno(item.turno.id, item.turno.recordatorio_enviado)}
+                      className={`!text-xs !px-3 !py-1 ${item.turno.recordatorio_enviado ? '!bg-green-600' : '!bg-gray-400'}`}
+                    >
+                      {item.turno.recordatorio_enviado ? 'Avisado' : 'No avisado'}
+                    </button>
+                  </div>
                   {item.tutores.map((t) => (
                     <Dato key={t.id} titulo="Tutor" valor={`${t.nombre} ${t.apellido}`} />
                   ))}
                 </div>
               )}
 
-              {item.tipo === 'tratamiento' && (
-                <div className="flex flex-wrap gap-2">
-                  <Dato titulo="Tratamiento" valor={item.tratamiento.nombre} />
-                  <Dato titulo="Tipo" valor={item.tratamiento.tipo} />
-                  <Dato titulo="Fecha" valor={item.tratamiento.fecha_proxima} />
-                  <Dato
-                    titulo="Aviso"
-                    valor={tratamientoFueAvisado(item.tratamiento.id) ? 'Avisado' : 'No avisado'}
-                    destacado={tratamientoFueAvisado(item.tratamiento.id)}
-                  />
-                  {item.tutores.map((t) => (
-                    <Dato key={t.id} titulo="Tutor" valor={`${t.nombre} ${t.apellido}`} />
-                  ))}
-                </div>
-              )}
+              {item.tipo === 'tratamiento' && (() => {
+                const avisado = tratamientoFueAvisado(item.tratamiento.id)
+                return (
+                  <div className="flex flex-wrap gap-2">
+                    <Dato titulo="Tratamiento" valor={item.tratamiento.nombre} />
+                    <Dato titulo="Tipo" valor={item.tratamiento.tipo} />
+                    <Dato titulo="Fecha" valor={item.tratamiento.fecha_proxima} />
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1">Aviso</p>
+                      <button
+                        onClick={() => toggleAvisoTratamiento(item.tratamiento.id, avisado)}
+                        className={`!text-xs !px-3 !py-1 ${avisado ? '!bg-green-600' : '!bg-gray-400'}`}
+                      >
+                        {avisado ? 'Avisado' : 'No avisado'}
+                      </button>
+                    </div>
+                    {item.tutores.map((t) => (
+                      <Dato key={t.id} titulo="Tutor" valor={`${t.nombre} ${t.apellido}`} />
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
           )
         })}
