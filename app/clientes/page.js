@@ -99,7 +99,7 @@ function ClientesContenido() {
 
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Clientes</h1>
+      <h1 className="text-3xl font-bold mb-6">Clientes LC VET</h1>
 
       <form onSubmit={guardarCliente} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
