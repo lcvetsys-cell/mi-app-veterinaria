@@ -14,6 +14,7 @@ function ClientesContenido() {
   const [fechaReg, setFechaReg] = useState('')
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+  const [notificacion, setNotificacion] = useState('')
   const searchParams = useSearchParams()
 
   async function obtenerClientes() {
@@ -33,6 +34,11 @@ function ClientesContenido() {
       if (cliente) empezarEdicion(cliente)
     }
   }, [searchParams, clientes])
+
+  function mostrarNotificacion(mensaje) {
+    setNotificacion(mensaje)
+    setTimeout(() => setNotificacion(''), 3000)
+  }
 
   function limpiarFormulario() {
     setNombre('')
@@ -75,6 +81,7 @@ function ClientesContenido() {
     if (error) {
       alert('No se pudo guardar: ' + error.message)
     } else {
+      mostrarNotificacion(editandoId ? 'Cliente actualizado' : 'Cliente agregado')
       limpiarFormulario()
       obtenerClientes()
     }
@@ -99,7 +106,19 @@ function ClientesContenido() {
 
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Clientes LC VET</h1>
+
+      {notificacion && (
+        <div style={{
+          position: 'fixed', top: '1.5rem', right: '1.5rem',
+          background: 'var(--color-teal)', color: 'white',
+          padding: '0.75rem 1.5rem', borderRadius: '10px',
+          fontWeight: '500', zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+        }}>
+          ✓ {notificacion}
+        </div>
+      )}
+
+      <h1 className="text-3xl font-bold mb-6">Clientes</h1>
 
       <form onSubmit={guardarCliente} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
@@ -130,12 +149,7 @@ function ClientesContenido() {
       </form>
 
       <div className="flex gap-2 mb-6">
-        <input
-          placeholder="Buscar cliente..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="max-w-sm"
-        />
+        <input placeholder="Buscar cliente..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
         <button type="button">Buscar</button>
       </div>
 
