@@ -19,6 +19,7 @@ function MascotasContenido() {
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+  const [notificacion, setNotificacion] = useState('')
   const searchParams = useSearchParams()
 
   async function obtenerMascotas() {
@@ -52,6 +53,11 @@ function MascotasContenido() {
       if (mascota) empezarEdicion(mascota)
     }
   }, [searchParams, mascotas, clientes])
+
+  function mostrarNotificacion(mensaje) {
+    setNotificacion(mensaje)
+    setTimeout(() => setNotificacion(''), 3000)
+  }
 
   function limpiarFormulario() {
     setNombre('')
@@ -97,14 +103,12 @@ function MascotasContenido() {
 
   async function guardarMascota(e) {
     e.preventDefault()
-
     const datos = {
       nombre, especie, sexo, raza,
       fecha_nacimiento: fechaNacimiento || null,
       fecha_fallecimiento: fechaFallecimiento || null,
       estado,
     }
-
     let mascotaId = editandoId
     let error
 
@@ -122,9 +126,7 @@ function MascotasContenido() {
       return
     }
 
-    // Borrar tutores anteriores y volver a insertar los seleccionados
     await supabase.from('mascota_clientes').delete().eq('mascota_id', mascotaId)
-
     if (tutoresSeleccionados.length > 0) {
       const relaciones = tutoresSeleccionados.map((t) => ({
         mascota_id: mascotaId,
@@ -133,6 +135,7 @@ function MascotasContenido() {
       await supabase.from('mascota_clientes').insert(relaciones)
     }
 
+    mostrarNotificacion(editandoId ? 'Mascota actualizada' : 'Mascota agregada')
     limpiarFormulario()
     obtenerMascotas()
     obtenerMascotaClientes()
@@ -165,6 +168,18 @@ function MascotasContenido() {
 
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
+
+      {notificacion && (
+        <div style={{
+          position: 'fixed', top: '1.5rem', right: '1.5rem',
+          background: 'var(--color-teal)', color: 'white',
+          padding: '0.75rem 1.5rem', borderRadius: '10px',
+          fontWeight: '500', zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+        }}>
+          ✓ {notificacion}
+        </div>
+      )}
+
       <h1 className="text-3xl font-bold mb-6">Mascotas</h1>
 
       <form onSubmit={guardarMascota} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
