@@ -181,6 +181,11 @@ function MascotasContenido() {
     !tutoresSeleccionados.find((t) => t.id === c.id)
   )
 
+  function irAlListado(e) {
+    e.preventDefault()
+    document.getElementById('lista-mascotas')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
 
@@ -195,7 +200,22 @@ function MascotasContenido() {
         </div>
       )}
 
-      <h1 className="text-3xl font-bold mb-6">Mascotas</h1>
+      <div className="flex items-center gap-4 mb-6">
+        <h1 className="text-3xl font-bold whitespace-nowrap">Mascotas</h1>
+        <form onSubmit={irAlListado} className="flex gap-2 flex-1 max-w-sm">
+          <input 
+            placeholder="Buscar mascota..." 
+            value={busqueda} 
+            onChange={(e) => setBusqueda(e.target.value)} 
+            className="w-full" 
+          />
+          <button 
+            type="submit" 
+          >
+            Buscar
+          </button>
+        </form>
+      </div>
 
       <form onSubmit={guardarMascota} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
@@ -286,32 +306,28 @@ function MascotasContenido() {
         </div>
       </form>
 
-      <div className="flex gap-2 mb-6 flex-wrap items-center">
-        <input placeholder="Buscar mascota..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
-        <button type="button">Buscar</button>
-        <div className="flex gap-2 ml-4">
-          <button 
-            type="button" 
-            onClick={() => setFiltroEstado('todos')}
-            className={`text-sm !px-3 !py-1 ${filtroEstado === 'todos' ? '!bg-[var(--color-violet)]' : '!bg-gray-200 !text-gray-700'}`}
-          >
-            Todos
-          </button>
-          <button 
-            type="button" 
-            onClick={() => setFiltroEstado('activa')}
-            className={`text-sm !px-3 !py-1 ${filtroEstado === 'activa' ? '!bg-[var(--color-violet)]' : '!bg-gray-200 !text-gray-700'}`}
-          >
-            Activas
-          </button>
-          <button 
-            type="button" 
-            onClick={() => setFiltroEstado('fallecida')}
-            className={`text-sm !px-3 !py-1 ${filtroEstado === 'fallecida' ? '!bg-[var(--color-violet)]' : '!bg-gray-200 !text-gray-700'}`}
-          >
-            Fallecidas
-          </button>
-        </div>
+      <div className="flex gap-2 mb-6 flex-wrap">
+        <button 
+          type="button" 
+          onClick={() => setFiltroEstado('todos')}
+          className={`text-sm !px-3 !py-1 ${filtroEstado === 'todos' ? '!bg-[var(--color-violet)]' : '!bg-gray-200 !text-gray-700'}`}
+        >
+          Todos
+        </button>
+        <button 
+          type="button" 
+          onClick={() => setFiltroEstado('activa')}
+          className={`text-sm !px-3 !py-1 ${filtroEstado === 'activa' ? '!bg-[var(--color-violet)]' : '!bg-gray-200 !text-gray-700'}`}
+        >
+          Activas
+        </button>
+        <button 
+          type="button" 
+          onClick={() => setFiltroEstado('fallecida')}
+          className={`text-sm !px-3 !py-1 ${filtroEstado === 'fallecida' ? '!bg-[var(--color-violet)]' : '!bg-gray-200 !text-gray-700'}`}
+        >
+          Fallecidas
+        </button>
       </div>
 
       <hr className="border-t border-gray-200 mb-6" />
