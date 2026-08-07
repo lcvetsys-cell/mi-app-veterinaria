@@ -42,6 +42,19 @@ function ClientesContenido() {
     }
   }, [searchParams, clientes])
 
+  useEffect(() => {
+    const buscarDesdeUrl = searchParams.get('buscar')
+    if (buscarDesdeUrl && clientes.length > 0) {
+      const timer = setTimeout(() => {
+        const elemento = document.getElementById('lista-clientes')
+        if (elemento) {
+          elemento.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [searchParams, clientes])
+
   function mostrarNotificacion(mensaje) {
     setNotificacion(mensaje)
     setTimeout(() => setNotificacion(''), 3000)
@@ -162,7 +175,7 @@ function ClientesContenido() {
 
       <hr className="border-t border-gray-200 mb-6" />
 
-      <div className="flex flex-col gap-5">
+      <div id="lista-clientes" className="flex flex-col gap-5">
         {clientes
           .filter((cliente) => `${cliente.nombre} ${cliente.apellido}`.toLowerCase().includes(busqueda.toLowerCase()))
           .map((cliente) => (
