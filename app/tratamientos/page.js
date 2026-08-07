@@ -280,6 +280,7 @@ function TratamientosContenido() {
             return (
               (mascota && mascota.nombre.toLowerCase().includes(texto)) ||
               tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(texto)) ||
+              (tratamiento.nombre || '').toLowerCase().includes(texto) ||
               (tratamiento.tipo || '').toLowerCase().includes(texto)
             )
           })
