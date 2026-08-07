@@ -209,10 +209,13 @@ function MascotasContenido() {
             onChange={(e) => setBusqueda(e.target.value)} 
             className="w-full" 
           />
+                    <button type="submit">Buscar</button>
           <button 
-            type="submit" 
+            type="button" 
+            onClick={() => { setBusqueda(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }} 
+            className="!bg-gray-300 !text-gray-700"
           >
-            Buscar
+            Limpiar
           </button>
         </form>
       </div>
