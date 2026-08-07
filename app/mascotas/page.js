@@ -20,6 +20,7 @@ function MascotasContenido() {
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [notificacion, setNotificacion] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('todos')
   const searchParams = useSearchParams()
 
   async function obtenerMascotas() {
@@ -271,9 +272,32 @@ function MascotasContenido() {
         </div>
       </form>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 flex-wrap items-center">
         <input placeholder="Buscar mascota..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
         <button type="button">Buscar</button>
+        <div className="flex gap-2 ml-4">
+          <button 
+            type="button" 
+            onClick={() => setFiltroEstado('todos')}
+            className={`text-sm !px-3 !py-1 ${filtroEstado === 'todos' ? '!bg-[var(--color-violet)]' : '!bg-gray-200 !text-gray-700'}`}
+          >
+            Todos
+          </button>
+          <button 
+            type="button" 
+            onClick={() => setFiltroEstado('activa')}
+            className={`text-sm !px-3 !py-1 ${filtroEstado === 'activa' ? '!bg-[var(--color-violet)]' : '!bg-gray-200 !text-gray-700'}`}
+          >
+            Activas
+          </button>
+          <button 
+            type="button" 
+            onClick={() => setFiltroEstado('fallecida')}
+            className={`text-sm !px-3 !py-1 ${filtroEstado === 'fallecida' ? '!bg-[var(--color-violet)]' : '!bg-gray-200 !text-gray-700'}`}
+          >
+            Fallecidas
+          </button>
+        </div>
       </div>
 
       <hr className="border-t border-gray-200 mb-6" />
@@ -281,6 +305,7 @@ function MascotasContenido() {
       <div className="flex flex-col gap-5">
         {mascotas
           .filter((mascota) => {
+            if (filtroEstado !== 'todos' && mascota.estado !== filtroEstado) return false
             const tutores = mascotaClientes
               .filter((mc) => mc.mascota_id === mascota.id)
               .map((mc) => clientes.find((c) => c.id === mc.cliente_id))
