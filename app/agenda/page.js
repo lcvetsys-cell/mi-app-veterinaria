@@ -6,18 +6,21 @@ import { supabase } from '../../lib/supabaseClient'
 export default function Agenda() {
   const [turnos, setTurnos] = useState([])
   const [tratamientos, setTratamientos] = useState([])
+  const [consultas, setConsultas] = useState([])
   const [mascotas, setMascotas] = useState([])
   const [clientes, setClientes] = useState([])
   const [mascotaClientes, setMascotaClientes] = useState([])
   const [avisos, setAvisos] = useState([])
   const [filtro, setFiltro] = useState('7')
+  const [filtroTipo, setFiltroTipo] = useState('todos')
   const router = useRouter()
 
   useEffect(() => {
     async function cargarTodo() {
-      const [t, tr, m, c, mc, av] = await Promise.all([
+      const [t, tr, co, m, c, mc, av] = await Promise.all([
         supabase.from('turnos').select('*').order('fecha', { ascending: true }),
         supabase.from('tratamientos').select('*').order('fecha_proxima', { ascending: true }),
+        supabase.from('consultas').select('*').order('fecha', { ascending: true }),
         supabase.from('mascotas').select('*'),
         supabase.from('clientes').select('*'),
         supabase.from('mascota_clientes').select('*'),
@@ -25,6 +28,7 @@ export default function Agenda() {
       ])
       setTurnos(t.data || [])
       setTratamientos(tr.data || [])
+      setConsultas(co.data || [])
       setMascotas(m.data || [])
       setClientes(c.data || [])
       setMascotaClientes(mc.data || [])
@@ -128,35 +132,56 @@ export default function Agenda() {
 
   const items = []
 
-  turnos
-    .filter((t) => dentroDelFiltro(t.fecha))
-    .forEach((t) => {
-      const mascota = mascotas.find((m) => m.id === t.mascota_id)
-      const tutores = mascota ? tutoresDeMascota(mascota.id) : []
-      items.push({
-        tipo: 'turno',
-        fecha: t.fecha,
-        dias: diasRestantes(t.fecha),
-        turno: t,
-        mascota,
-        tutores,
+  if (filtroTipo === 'todos' || filtroTipo === 'turnos') {
+    turnos
+      .filter((t) => dentroDelFiltro(t.fecha))
+      .forEach((t) => {
+        const mascota = mascotas.find((m) => m.id === t.mascota_id)
+        const tutores = mascota ? tutoresDeMascota(mascota.id) : []
+        items.push({
+          tipo: 'turno',
+          fecha: t.fecha,
+          dias: diasRestantes(t.fecha),
+          turno: t,
+          mascota,
+          tutores,
+        })
       })
-    })
+  }
 
-  tratamientos
-    .filter((t) => dentroDelFiltro(t.fecha_proxima))
-    .forEach((t) => {
-      const mascota = mascotas.find((m) => m.id === t.mascota_id)
-      const tutores = mascota ? tutoresDeMascota(mascota.id) : []
-      items.push({
-        tipo: 'tratamiento',
-        fecha: t.fecha_proxima,
-        dias: diasRestantes(t.fecha_proxima),
-        tratamiento: t,
-        mascota,
-        tutores,
+  if (filtroTipo === 'todos' || filtroTipo === 'tratamientos') {
+    tratamientos
+      .filter((t) => dentroDelFiltro(t.fecha_proxima))
+      .forEach((t) => {
+        const mascota = mascotas.find((m) => m.id === t.mascota_id)
+        const tutores = mascota ? tutoresDeMascota(mascota.id) : []
+        items.push({
+          tipo: 'tratamiento',
+          fecha: t.fecha_proxima,
+          dias: diasRestantes(t.fecha_proxima),
+          tratamiento: t,
+          mascota,
+          tutores,
+        })
       })
-    })
+  }
+
+  if (filtroTipo === 'todos' || filtroTipo === 'consultas') {
+    consultas
+      .filter((co) => dentroDelFiltro(co.fecha))
+      .forEach((co) => {
+        const mascota = mascotas.find((m) => m.id === co.mascota_id)
+        const tutores = mascota ? tutoresDeMascota(mascota.id) : []
+        items.push({
+          tipo: 'consulta',
+          fecha: co.fecha,
+          dias: diasRestantes(co.fecha),
+          consulta: co,
+          mascota,
+          tutores,
+        })
+      })
+  }
 
   items.sort((a, b) => filtro === 'vencidos'
     ? b.fecha.localeCompare(a.fecha)
@@ -172,11 +197,32 @@ export default function Agenda() {
     )
   }
 
+  function getRutaEdicion(item) {
+    if (item.tipo === 'turno') return `/turnos?editar=${item.turno.id}`
+    if (item.tipo === 'tratamiento') return `/tratamientos?editar=${item.tratamiento.id}`
+    if (item.tipo === 'consulta') return `/consultas?editar=${item.consulta.id}`
+    return '/'
+  }
+
+  function getColorTipo(tipo) {
+    if (tipo === 'turno') return 'bg-[var(--color-violet)] text-white'
+    if (tipo === 'tratamiento') return 'bg-[var(--color-teal)] text-white'
+    if (tipo === 'consulta') return 'bg-blue-500 text-white'
+    return 'bg-gray-400 text-white'
+  }
+
+  function getTextoTipo(tipo) {
+    if (tipo === 'turno') return 'Turno'
+    if (tipo === 'tratamiento') return 'Tratamiento'
+    if (tipo === 'consulta') return 'Consulta'
+    return 'Desconocido'
+  }
+
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Agenda</h1>
 
-      <div className="flex gap-2 mb-8 flex-wrap">
+      <div className="flex gap-2 mb-4 flex-wrap">
         {[
           { valor: '2', etiqueta: 'Próximos 2 días' },
           { valor: '7', etiqueta: 'Próximos 7 días' },
@@ -194,8 +240,25 @@ export default function Agenda() {
         ))}
       </div>
 
+      <div className="flex gap-2 mb-8 flex-wrap">
+        {[
+          { valor: 'todos', etiqueta: 'Todos los tipos' },
+          { valor: 'turnos', etiqueta: 'Turnos' },
+          { valor: 'tratamientos', etiqueta: 'Tratamientos' },
+          { valor: 'consultas', etiqueta: 'Consultas' },
+        ].map((op) => (
+          <button
+            key={op.valor}
+            onClick={() => setFiltroTipo(op.valor)}
+            className={`text-sm ${filtroTipo === op.valor ? '!bg-[var(--color-violet)]' : '!bg-gray-100 !text-gray-600'}`}
+          >
+            {op.etiqueta}
+          </button>
+        ))}
+      </div>
+
       {items.length === 0 && (
-        <p className="text-sm text-gray-400">No hay turnos ni tratamientos para el período seleccionado.</p>
+        <p className="text-sm text-gray-400">No hay turnos, tratamientos ni consultas para el período seleccionado.</p>
       )}
 
       <div className="flex flex-col gap-4">
@@ -208,12 +271,12 @@ export default function Agenda() {
                   <span className={`text-white text-xs font-semibold px-3 py-1 rounded-full ${urgencia.color}`}>
                     {urgencia.texto}
                   </span>
-                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${item.tipo === 'turno' ? 'bg-[var(--color-violet)] text-white' : 'bg-[var(--color-teal)] text-white'}`}>
-                    {item.tipo === 'turno' ? 'Turno' : 'Tratamiento'}
+                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${getColorTipo(item.tipo)}`}>
+                    {getTextoTipo(item.tipo)}
                   </span>
                 </div>
                 <button
-                  onClick={() => router.push(`/${item.tipo === 'turno' ? 'turnos' : 'tratamientos'}?editar=${item.tipo === 'turno' ? item.turno.id : item.tratamiento.id}`)}
+                  onClick={() => router.push(getRutaEdicion(item))}
                   className="!bg-[var(--color-teal)] !text-sm shrink-0"
                 >
                   Editar
@@ -266,6 +329,18 @@ export default function Agenda() {
                   </div>
                 )
               })()}
+
+              {item.tipo === 'consulta' && (
+                <div className="flex flex-wrap gap-2">
+                  <Dato titulo="Fecha" valor={item.consulta.fecha} />
+                  <Dato titulo="Motivo" valor={item.consulta.motivo} />
+                  <Dato titulo="Diagnóstico" valor={item.consulta.diagnostico} />
+                  {item.tutores.map((t) => (
+                    <Dato key={t.id} titulo="Tutor" valor={`${t.nombre} ${t.apellido}`} />
+                  ))}
+                </div>
+              )}
+
             </div>
           )
         })}
