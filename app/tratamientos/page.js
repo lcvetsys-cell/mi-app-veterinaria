@@ -274,11 +274,14 @@ function TratamientosContenido() {
         {tratamientos
           .filter((tratamiento) => {
             if (busqueda === '') return true
+            const texto = busqueda.toLowerCase()
             const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
-            if (!mascota) return false
-            const tutores = tutoresDeMascota(mascota.id)
-            return tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(busqueda.toLowerCase())) ||
-              mascota.nombre.toLowerCase().includes(busqueda.toLowerCase())
+            const tutores = mascota ? tutoresDeMascota(mascota.id) : []
+            return (
+              (mascota && mascota.nombre.toLowerCase().includes(texto)) ||
+              tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(texto)) ||
+              (tratamiento.tipo || '').toLowerCase().includes(texto)
+            )
           })
           .map((tratamiento) => {
             const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
