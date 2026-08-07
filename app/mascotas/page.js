@@ -57,6 +57,18 @@ function MascotasContenido() {
     }
   }, [searchParams, mascotas, clientes])
 
+  useEffect(() => {
+    if (clienteIdFiltro && mascotas.length > 0) {
+      const timer = setTimeout(() => {
+        const elemento = document.getElementById('lista-mascotas')
+        if (elemento) {
+          elemento.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [clienteIdFiltro, mascotas])
+
   function mostrarNotificacion(mensaje) {
     setNotificacion(mensaje)
     setTimeout(() => setNotificacion(''), 3000)
@@ -141,7 +153,7 @@ function MascotasContenido() {
     mostrarNotificacion(editandoId ? 'Mascota actualizada' : 'Mascota agregada')
     limpiarFormulario()
     obtenerMascotas()
-    obtainMascotaClientes()
+    obtenerMascotaClientes()
   }
 
   async function eliminarMascota(id) {
@@ -164,7 +176,7 @@ function MascotasContenido() {
     )
   }
 
-  const clientesFiltrados = clientes.filter((c) =>
+  const clientesFiltrados = clients.filter((c) =>
     `${c.nombre} ${c.apellido}`.toLowerCase().includes(busquedaTutor.toLowerCase()) &&
     !tutoresSeleccionados.find((t) => t.id === c.id)
   )
@@ -304,13 +316,13 @@ function MascotasContenido() {
 
       <hr className="border-t border-gray-200 mb-6" />
 
-      <div className="flex flex-col gap-5">
+      <div id="lista-mascotas" className="flex flex-col gap-5">
         {mascotas
           .filter((mascota) => {
-                  if (clienteIdFiltro) {
-        const esDeEsteCliente = mascotaClientes.some(mc => mc.cliente_id === parseInt(clienteIdFiltro) && mc.mascota_id === mascota.id)
-        if (!esDeEsteCliente) return false
-      }
+            if (clienteIdFiltro) {
+              const esDeEsteCliente = mascotaClientes.some(mc => mc.cliente_id === parseInt(clienteIdFiltro) && mc.mascota_id === mascota.id)
+              if (!esDeEsteCliente) return false
+            }
             if (filtroEstado !== 'todos' && mascota.estado !== filtroEstado) return false
             const tutores = mascotaClientes
               .filter((mc) => mc.mascota_id === mascota.id)
