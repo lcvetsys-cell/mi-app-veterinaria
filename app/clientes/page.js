@@ -124,6 +124,11 @@ function ClientesContenido() {
     )
   }
 
+  function irAlListado(e) {
+    e.preventDefault()
+    document.getElementById('lista-clientes')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
 
@@ -140,7 +145,7 @@ function ClientesContenido() {
 
       <div className="flex items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold whitespace-nowrap">Clientes</h1>
-        <div className="flex gap-2 flex-1 max-w-sm">
+        <form onSubmit={irAlListado} className="flex gap-2 flex-1 max-w-sm">
           <input 
             placeholder="Buscar cliente..." 
             value={busqueda} 
@@ -148,12 +153,11 @@ function ClientesContenido() {
             className="w-full" 
           />
           <button 
-            type="button" 
-            onClick={() => document.getElementById('lista-clientes')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            type="submit" 
           >
             Buscar
           </button>
-        </div>
+        </form>
       </div>
 
       <form onSubmit={guardarCliente} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
