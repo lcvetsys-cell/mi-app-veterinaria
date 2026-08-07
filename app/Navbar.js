@@ -79,6 +79,30 @@ export default function Navbar() {
           </button>
         </div>
       )}
+            <button
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        style={{
+          position: 'fixed',
+          bottom: '2rem',
+          right: '2rem',
+          width: '50px',
+          height: '50px',
+          borderRadius: '50%',
+          background: 'var(--color-teal)',
+          color: 'white',
+          fontSize: '1.5rem',
+          border: 'none',
+          cursor: 'pointer',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+          zIndex: 9998,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        title="Ir arriba"
+      >
+        ↑
+      </button>
     </nav>
   )
 }
