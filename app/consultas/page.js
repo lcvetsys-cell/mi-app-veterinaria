@@ -16,6 +16,7 @@ function ConsultasContenido() {
   const [diagnostico, setDiagnostico] = useState('')
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+  const [notificacion, setNotificacion] = useState('')
   const searchParams = useSearchParams()
 
   async function obtenerConsultas() {
@@ -57,17 +58,9 @@ function ConsultasContenido() {
     }
   }, [searchParams, consultas])
 
-  function tutoresDeMascota(mascotaId) {
-    return mascotaClientes
-      .filter((mc) => mc.mascota_id === mascotaId)
-      .map((mc) => clientes.find((c) => c.id === mc.cliente_id))
-      .filter(Boolean)
-  }
-
-  function nombreConTutores(mascota) {
-    const tutores = tutoresDeMascota(mascota.id)
-    if (tutores.length === 0) return mascota.nombre
-    return `${mascota.nombre} — ${tutores.map((t) => `${t.nombre} ${t.apellido}`).join(', ')}`
+  function mostrarNotificacion(mensaje) {
+    setNotificacion(mensaje)
+    setTimeout(() => setNotificacion(''), 3000)
   }
 
   function limpiarFormulario() {
@@ -81,13 +74,28 @@ function ConsultasContenido() {
 
   function empezarEdicion(consulta) {
     setEditandoId(consulta.id)
-    setMascotaId(consulta.mascota_id || '')
-    const mascota = mascotas.find((m) => m.id === consulta.mascota_id)
-    setBusquedaMascota(mascota ? nombreConTutores(mascota) : '')
     setFecha(consulta.fecha || '')
     setMotivo(consulta.motivo || '')
     setDiagnostico(consulta.diagnostico || '')
+    
+    const mascota = mascotas.find((m) => m.id === consulta.mascota_id)
+    setMascotaId(consulta.mascota_id || '')
+    setBusquedaMascota(mascota ? nombreConTutores(mascota) : '')
+    
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function tutoresDeMascota(mascotaId) {
+    return mascotaClientes
+      .filter((mc) => mc.mascota_id === mascotaId)
+      .map((mc) => clientes.find((c) => c.id === mc.cliente_id))
+      .filter(Boolean)
+  }
+
+  function nombreConTutores(mascota) {
+    const tutores = tutoresDeMascota(mascota.id)
+    if (tutores.length === 0) return mascota.nombre
+    return `${mascota.nombre} — ${tutores.map((t) => `${t.nombre} ${t.apellido}`).join(', ')}`
   }
 
   function seleccionarMascota(mascota) {
@@ -98,7 +106,12 @@ function ConsultasContenido() {
 
   async function guardarConsulta(e) {
     e.preventDefault()
-    const datos = { mascota_id: mascotaId, fecha: fecha || null, motivo, diagnostico }
+    const datos = {
+      mascota_id: mascotaId,
+      fecha: fecha || null,
+      motivo,
+      diagnostico,
+    }
     let error
     if (editandoId) {
       const r = await supabase.from('consultas').update(datos).eq('id', editandoId)
@@ -110,6 +123,7 @@ function ConsultasContenido() {
     if (error) {
       alert('No se pudo guardar: ' + error.message)
     } else {
+      mostrarNotificacion(editandoId ? 'Consulta actualizada' : 'Consulta agregada')
       limpiarFormulario()
       obtenerConsultas()
     }
@@ -123,11 +137,16 @@ function ConsultasContenido() {
     else obtenerConsultas()
   }
 
+  function irAlListado(e) {
+    e.preventDefault()
+    document.getElementById('lista-consultas')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   function Dato({ titulo, valor }) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
         <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1">{titulo}</p>
-        <p className="text-sm text-gray-800">{valor || '—'}</p>
+        <p className="text-sm text-gray-800 capitalize">{valor || '—'}</p>
       </div>
     )
   }
@@ -138,7 +157,33 @@ function ConsultasContenido() {
 
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Consultas</h1>
+
+      {notificacion && (
+        <div style={{
+          position: 'fixed', top: '1.5rem', right: '1.5rem',
+          background: 'var(--color-teal)', color: 'white',
+          padding: '0.75rem 1.5rem', borderRadius: '10px',
+          fontWeight: '500', zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+        }}>
+          ✓ {notificacion}
+        </div>
+      )}
+
+      <div className="flex items-center gap-4 mb-6">
+        <h1 className="text-3xl font-bold whitespace-nowrap">Consultas</h1>
+        <form onSubmit={irAlListado} className="flex gap-2 flex-1 max-w-sm">
+          <input 
+            placeholder="Buscar consulta..." 
+            value={busqueda} 
+            onChange={(e) => setBusqueda(e.target.value)} 
+            className="w-full" 
+          />
+          <button type="submit">Buscar</button>
+          <button type="button" onClick={() => { setBusqueda(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="!bg-gray-300 !text-gray-700">
+            Limpiar
+          </button>
+        </form>
+      </div>
 
       <form onSubmit={guardarConsulta} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
@@ -170,10 +215,10 @@ function ConsultasContenido() {
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
 
           <label className="text-xs font-medium text-gray-700">Motivo</label>
-          <input placeholder="Motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+          <input placeholder="Ej: Control de rutina" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
 
           <label className="text-xs font-medium text-gray-700">Diagnóstico</label>
-          <textarea placeholder="Diagnóstico" value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} rows={3} />
+          <input placeholder="Diagnóstico o resultado" value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} />
         </div>
 
         <div className="flex gap-2">
@@ -184,35 +229,31 @@ function ConsultasContenido() {
         </div>
       </form>
 
-      <div className="flex gap-2 mb-6">
-        <input placeholder="Buscar consulta..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
-        <button type="button">Buscar</button>
-      </div>
-
       <hr className="border-t border-gray-200 mb-6" />
 
-      <div className="flex flex-col gap-5">
+      <div id="lista-consultas" className="flex flex-col gap-5">
         {consultas
           .filter((consulta) => {
             if (busqueda === '') return true
-            const texto = busqueda.toLowerCase()
             const mascota = mascotas.find((m) => m.id === consulta.mascota_id)
             const tutores = mascota ? tutoresDeMascota(mascota.id) : []
+            const textoBusqueda = busqueda.toLowerCase()
             return (
-              (mascota && mascota.nombre.toLowerCase().includes(texto)) ||
-              tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(texto)) ||
-              (consulta.motivo || '').toLowerCase().includes(texto) ||
-              (consulta.diagnostico || '').toLowerCase().includes(texto)
+              mascota?.nombre?.toLowerCase().includes(textoBusqueda) ||
+              consulta.motivo?.toLowerCase().includes(textoBusqueda) ||
+              consulta.diagnostico?.toLowerCase().includes(textoBusqueda) ||
+              tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(textoBusqueda))
             )
           })
           .map((consulta) => {
             const mascota = mascotas.find((m) => m.id === consulta.mascota_id)
+            const tutores = mascota ? tutoresDeMascota(mascota.id) : []
             return (
               <div key={consulta.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Motivo</p>
-                    <p className="text-xl font-semibold text-[var(--color-teal)]">{consulta.motivo || 'Sin motivo'}</p>
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Mascota</p>
+                    <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? mascota.nombre : 'Sin mascota'}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => empezarEdicion(consulta)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
@@ -220,9 +261,12 @@ function ConsultasContenido() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <Dato titulo="Mascota" valor={mascota ? nombreConTutores(mascota) : 'Sin mascota'} />
                   <Dato titulo="Fecha" valor={consulta.fecha} />
+                  <Dato titulo="Motivo" valor={consulta.motivo} />
                   <Dato titulo="Diagnóstico" valor={consulta.diagnostico} />
+                  {tutores.map((t) => (
+                    <Dato key={t.id} titulo="Tutor" valor={`${t.nombre} ${t.apellido}`} />
+                  ))}
                 </div>
               </div>
             )
