@@ -100,10 +100,10 @@ export default function Agenda() {
     return f.toISOString().split('T')[0]
   }
 
-  function dentroDelFiltro(fecha) {
+    function dentroDelFiltro(fecha) {
     if (!fecha) return false
     if (filtro === 'vencidos') return fecha < hoy()
-    if (filtro === 'todos') return fecha >= hoy()
+    if (filtro === 'todos') return true
     return fecha >= hoy() && fecha <= fechaLimite()
   }
 
