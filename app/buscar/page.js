@@ -1,6 +1,3 @@
-Acá tenés el archivo `Buscar.js` completo. Reduje el ancho de la celda a la mitad (cambiando el `max-w-xl` por `max-w-md`) y le agrupé un botón "Limpiar" a la derecha usando un contenedor `flex`.
-
-```javascript
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
