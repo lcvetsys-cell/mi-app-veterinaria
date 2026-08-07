@@ -29,11 +29,17 @@ function ClientesContenido() {
 
   useEffect(() => {
     const editarId = searchParams.get('editar')
+    const buscarDesdeUrl = searchParams.get('buscar')
+    
+    if (buscarDesdeUrl) {
+      setBusqueda(buscarDesdeUrl)
+    }
+
     if (editarId && clientes.length > 0) {
       const cliente = clientes.find((c) => c.id === parseInt(editarId))
       if (cliente) empezarEdicion(cliente)
     }
-  }, [searchParams, clientes])
+  }, [searchParams, clients])
 
   function mostrarNotificacion(mensaje) {
     setNotificacion(mensaje)
