@@ -167,7 +167,15 @@ function ClientesContenido() {
           .map((cliente) => (
             <div key={cliente.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-center mb-4">
-                <p className="text-xl font-semibold text-[var(--color-teal)]">{cliente.nombre} {cliente.apellido}</p>
+                <div className="flex items-center gap-3">
+  <p className="text-xl font-semibold text-[var(--color-teal)]">{cliente.nombre} {cliente.apellido}</p>
+  <button 
+    onClick={() => router.push(`/mascotas?cliente_id=${cliente.id}`)}
+    className="!bg-gray-200 !text-gray-700 !text-xs !px-3 !py-1 !rounded-full hover:!bg-gray-300"
+  >
+    Mascotas
+  </button>
+</div>
                 <div className="flex gap-2 shrink-0">
                   <button onClick={() => empezarEdicion(cliente)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
                   <button onClick={() => eliminarCliente(cliente.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>

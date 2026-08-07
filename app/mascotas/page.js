@@ -23,6 +23,7 @@ function MascotasContenido() {
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const searchParams = useSearchParams()
   const router = useRouter()
+  const clienteIdFiltro = searchParams.get('cliente_id')
 
   async function obtenerMascotas() {
     const { data, error } = await supabase.from('mascotas').select('*').order('nombre', { ascending: true })
@@ -306,6 +307,10 @@ function MascotasContenido() {
       <div className="flex flex-col gap-5">
         {mascotas
           .filter((mascota) => {
+                  if (clienteIdFiltro) {
+        const esDeEsteCliente = mascotaClientes.some(mc => mc.cliente_id === parseInt(clienteIdFiltro) && mc.mascota_id === mascota.id)
+        if (!esDeEsteCliente) return false
+      }
             if (filtroEstado !== 'todos' && mascota.estado !== filtroEstado) return false
             const tutores = mascotaClientes
               .filter((mc) => mc.mascota_id === mascota.id)
