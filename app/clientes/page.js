@@ -138,7 +138,13 @@ function ClientesContenido() {
         </div>
       )}
 
-      <h1 className="text-3xl font-bold mb-6">Clientes</h1>
+            <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Clientes</h1>
+        <div className="flex gap-2">
+          <input placeholder="Buscar cliente..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
+          <button type="button">Buscar</button>
+        </div>
+      </div>
 
       <form onSubmit={guardarCliente} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
@@ -167,11 +173,6 @@ function ClientesContenido() {
           )}
         </div>
       </form>
-
-      <div className="flex gap-2 mb-6">
-        <input placeholder="Buscar cliente..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
-        <button type="button">Buscar</button>
-      </div>
 
       <hr className="border-t border-gray-200 mb-6" />
 
