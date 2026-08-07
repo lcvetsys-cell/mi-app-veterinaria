@@ -17,6 +17,10 @@ function TurnosContenido() {
   const [editandoId, setEditandoId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [enviandoId, setEnviandoId] = useState(null)
+  const [filtroRapido, setFiltroRapido] = useState(null)
+  const [rangoDesde, setRangoDesde] = useState('')
+  const [rangoHasta, setRangoHasta] = useState('')
+  const [mostrarRango, setMostrarRango] = useState(false)
   const searchParams = useSearchParams()
 
   async function obtenerTurnos() {
@@ -69,6 +73,22 @@ function TurnosContenido() {
     const tutores = tutoresDeMascota(mascota.id)
     if (tutores.length === 0) return mascota.nombre
     return `${mascota.nombre} — ${tutores.map((t) => `${t.nombre} ${t.apellido}`).join(', ')}`
+  }
+
+  function hoy() {
+    return new Date().toISOString().split('T')[0]
+  }
+
+  function fechaSemanaProxima() {
+    const f = new Date()
+    f.setDate(f.getDate() + 7)
+    return f.toISOString().split('T')[0]
+  }
+
+  function fechaMesProximo() {
+    const f = new Date()
+    f.setDate(f.getDate() + 30)
+    return f.toISOString().split('T')[0]
   }
 
   function limpiarFormulario() {
@@ -129,11 +149,8 @@ function TurnosContenido() {
       .from('turnos')
       .update({ recordatorio_enviado: !valorActual })
       .eq('id', id)
-    if (error) {
-      alert('No se pudo actualizar: ' + error.message)
-    } else {
-      obtenerTurnos()
-    }
+    if (error) alert('No se pudo actualizar: ' + error.message)
+    else obtenerTurnos()
   }
 
   async function enviarWhatsapp(turno, tutor) {
@@ -170,6 +187,35 @@ function TurnosContenido() {
   const mascotasFiltradas = mascotas.filter((m) =>
     nombreConTutores(m).toLowerCase().includes(busquedaMascota.toLowerCase())
   )
+
+  // Lógica de filtrado combinada
+  const turnosFiltrados = turnos.filter((turno) => {
+    // Filtro de búsqueda por texto
+    if (busqueda) {
+      const texto = busqueda.toLowerCase()
+      const mascota = mascotas.find((m) => m.id === turno.mascota_id)
+      const tutores = mascota ? tutoresDeMascota(mascota.id) : []
+      const coincideTexto =
+        (mascota && mascota.nombre.toLowerCase().includes(texto)) ||
+        tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(texto))
+      if (!coincideTexto) return false
+    }
+
+    // Filtro rápido por período
+    if (filtroRapido === 'semana') {
+      return turno.fecha >= hoy() && turno.fecha <= fechaSemanaProxima()
+    }
+    if (filtroRapido === 'mes') {
+      return turno.fecha >= hoy() && turno.fecha <= fechaMesProximo()
+    }
+    if (filtroRapido === 'rango') {
+      if (rangoDesde && rangoHasta) return turno.fecha >= rangoDesde && turno.fecha <= rangoHasta
+      if (rangoDesde) return turno.fecha >= rangoDesde
+      if (rangoHasta) return turno.fecha <= rangoHasta
+    }
+
+    return true
+  })
 
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
@@ -224,65 +270,109 @@ function TurnosContenido() {
         </div>
       </form>
 
-      <div className="flex gap-2 mb-6">
-        <input placeholder="Buscar turno..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
-        <button type="button">Buscar</button>
+      {/* Barra de búsqueda y filtros */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <input
+          placeholder="Buscar turno..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="max-w-sm"
+        />
+        <button
+          type="button"
+          onClick={() => { setFiltroRapido(filtroRapido === 'semana' ? null : 'semana'); setMostrarRango(false) }}
+          className={filtroRapido === 'semana' ? '!bg-[var(--color-teal)]' : '!bg-gray-200 !text-gray-700'}
+        >
+          Esta semana
+        </button>
+        <button
+          type="button"
+          onClick={() => { setFiltroRapido(filtroRapido === 'mes' ? null : 'mes'); setMostrarRango(false) }}
+          className={filtroRapido === 'mes' ? '!bg-[var(--color-teal)]' : '!bg-gray-200 !text-gray-700'}
+        >
+          Este mes
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMostrarRango(!mostrarRango); setFiltroRapido(mostrarRango ? null : 'rango') }}
+          className={filtroRapido === 'rango' ? '!bg-[var(--color-teal)]' : '!bg-gray-200 !text-gray-700'}
+        >
+          Por rango
+        </button>
+        {(filtroRapido || busqueda) && (
+          <button
+            type="button"
+            onClick={() => { setFiltroRapido(null); setBusqueda(''); setRangoDesde(''); setRangoHasta(''); setMostrarRango(false) }}
+            className="!bg-[var(--color-coral)]"
+          >
+            Limpiar
+          </button>
+        )}
       </div>
+
+      {/* Selector de rango */}
+      {mostrarRango && (
+        <div className="flex flex-wrap gap-3 mb-4 bg-white border border-[var(--color-line)] rounded-xl p-4 max-w-xl">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-gray-700">Desde</label>
+            <input type="date" value={rangoDesde} onChange={(e) => setRangoDesde(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-gray-700">Hasta</label>
+            <input type="date" value={rangoHasta} onChange={(e) => setRangoHasta(e.target.value)} />
+          </div>
+        </div>
+      )}
 
       <hr className="border-t border-gray-200 mb-6" />
 
+      {turnosFiltrados.length === 0 && (
+        <p className="text-sm text-gray-400">No hay turnos para el filtro seleccionado.</p>
+      )}
+
       <div className="flex flex-col gap-5">
-        {turnos
-          .filter((turno) => {
-            if (busqueda === '') return true
-            const mascota = mascotas.find((m) => m.id === turno.mascota_id)
-            if (!mascota) return false
-            const tutores = tutoresDeMascota(mascota.id)
-            return tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(busqueda.toLowerCase())) ||
-              mascota.nombre.toLowerCase().includes(busqueda.toLowerCase())
-          })
-          .map((turno) => {
-            const mascota = mascotas.find((m) => m.id === turno.mascota_id)
-            const tutores = mascota ? tutoresDeMascota(mascota.id) : []
-            return (
-              <div key={turno.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Turno</p>
-                    <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? nombreConTutores(mascota) : 'Sin mascota'}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    {tutores.map((tutor) => (
-                      <button
-                        key={tutor.id}
-                        onClick={() => enviarWhatsapp(turno, tutor)}
-                        disabled={enviandoId === `${turno.id}-${tutor.id}`}
-                        className="!bg-green-600 !text-sm"
-                      >
-                        {enviandoId === `${turno.id}-${tutor.id}` ? 'Enviando...' : `WhatsApp ${tutor.nombre}`}
-                      </button>
-                    ))}
-                    <button onClick={() => empezarEdicion(turno)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
-                    <button onClick={() => eliminarTurno(turno.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
-                  </div>
+        {turnosFiltrados.map((turno) => {
+          const mascota = mascotas.find((m) => m.id === turno.mascota_id)
+          const tutores = mascota ? tutoresDeMascota(mascota.id) : []
+          return (
+            <div key={turno.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-0.5">Turno</p>
+                  <p className="text-xl font-semibold text-[var(--color-teal)]">{mascota ? nombreConTutores(mascota) : 'Sin mascota'}</p>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <Dato titulo="Fecha" valor={turno.fecha} />
-                  <Dato titulo="Hora" valor={turno.hora} />
-                  <Dato titulo="Estado" valor={turno.estado} />
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
-                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1">Aviso</p>
+                <div className="flex flex-wrap gap-2 justify-end">
+                  {tutores.map((tutor) => (
                     <button
-                      onClick={() => toggleAviso(turno.id, turno.recordatorio_enviado)}
-                      className={`!text-xs !px-3 !py-1 ${turno.recordatorio_enviado ? '!bg-green-600' : '!bg-gray-400'}`}
+                      key={tutor.id}
+                      onClick={() => enviarWhatsapp(turno, tutor)}
+                      disabled={enviandoId === `${turno.id}-${tutor.id}`}
+                      className="!bg-green-600 !text-sm"
                     >
-                      {turno.recordatorio_enviado ? 'Avisado' : 'No avisado'}
+                      {enviandoId === `${turno.id}-${tutor.id}` ? 'Enviando...' : `WhatsApp ${tutor.nombre}`}
                     </button>
-                  </div>
+                  ))}
+                  <button onClick={() => empezarEdicion(turno)} className="!bg-[var(--color-teal)] !text-sm">Editar</button>
+                  <button onClick={() => eliminarTurno(turno.id)} className="!bg-[var(--color-coral)] !text-sm">Eliminar</button>
                 </div>
               </div>
-            )
-          })}
+              <div className="flex flex-wrap gap-3">
+                <Dato titulo="Fecha" valor={turno.fecha} />
+                <Dato titulo="Hora" valor={turno.hora} />
+                <Dato titulo="Estado" valor={turno.estado} />
+                <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1">Aviso</p>
+                  <button
+                    onClick={() => toggleAviso(turno.id, turno.recordatorio_enviado)}
+                    className={`!text-xs !px-3 !py-1 ${turno.recordatorio_enviado ? '!bg-green-600' : '!bg-gray-400'}`}
+                  >
+                    {turno.recordatorio_enviado ? 'Avisado' : 'No avisado'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
