@@ -122,7 +122,7 @@ export default function Buscar() {
           placeholder="Buscar por cliente, mascota, tratamiento, consulta..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="w-full max-w-md"
+          className="max-w-md"
         />
         <button 
           type="button" 
