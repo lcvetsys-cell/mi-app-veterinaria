@@ -1,3 +1,6 @@
+Acá tenés el archivo `Buscar.js` completo. Reduje el ancho de la celda a la mitad (cambiando el `max-w-xl` por `max-w-md`) y le agrupé un botón "Limpiar" a la derecha usando un contenedor `flex`.
+
+```javascript
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -117,12 +120,21 @@ export default function Buscar() {
     <div className="px-12 py-8 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Búsqueda general</h1>
 
-      <input
-        placeholder="Buscar por cliente, mascota, tratamiento, consulta..."
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        className="w-full max-w-xl mb-8"
-      />
+      <div className="flex gap-2 mb-8">
+        <input
+          placeholder="Buscar por cliente, mascota, tratamiento, consulta..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="w-full max-w-md"
+        />
+        <button 
+          type="button" 
+          onClick={() => setBusqueda('')}
+          className="!bg-gray-300 !text-gray-700"
+        >
+          Limpiar
+        </button>
+      </div>
 
       {busqueda && clientesFiltrados.length === 0 && (
         <p className="text-sm text-gray-400">Sin resultados para "{busqueda}"</p>
