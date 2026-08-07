@@ -39,7 +39,7 @@ function ClientesContenido() {
       const cliente = clientes.find((c) => c.id === parseInt(editarId))
       if (cliente) empezarEdicion(cliente)
     }
-  }, [searchParams, clients])
+  }, [searchParams, clientes])
 
   function mostrarNotificacion(mensaje) {
     setNotificacion(mensaje)
