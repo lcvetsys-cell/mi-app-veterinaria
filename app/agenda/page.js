@@ -11,7 +11,7 @@ export default function Agenda() {
   const [clientes, setClientes] = useState([])
   const [mascotaClientes, setMascotaClientes] = useState([])
   const [avisos, setAvisos] = useState([])
-  const [filtro, setFiltro] = useState('7')
+  const [filtro, setFiltro] = useState('proximo')
   const [filtroTipo, setFiltroTipo] = useState('todos')
   const router = useRouter()
 
@@ -100,9 +100,10 @@ export default function Agenda() {
     return f.toISOString().split('T')[0]
   }
 
-    function dentroDelFiltro(fecha) {
+  function dentroDelFiltro(fecha) {
     if (!fecha) return false
     if (filtro === 'vencidos') return fecha < hoy()
+    if (filtro === 'proximo') return fecha >= hoy()
     if (filtro === 'todos') return true
     return fecha >= hoy() && fecha <= fechaLimite()
   }
@@ -224,6 +225,7 @@ export default function Agenda() {
 
       <div className="flex gap-2 mb-4 flex-wrap">
         {[
+          { valor: 'proximo', etiqueta: 'Próximos' },
           { valor: '2', etiqueta: 'Próximos 2 días' },
           { valor: '7', etiqueta: 'Próximos 7 días' },
           { valor: '30', etiqueta: 'Próximos 30 días' },
