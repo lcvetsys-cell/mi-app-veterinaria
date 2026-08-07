@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
 function MascotasContenido() {
@@ -22,6 +22,7 @@ function MascotasContenido() {
   const [notificacion, setNotificacion] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   async function obtenerMascotas() {
     const { data, error } = await supabase.from('mascotas').select('*').order('nombre', { ascending: true })
@@ -139,7 +140,7 @@ function MascotasContenido() {
     mostrarNotificacion(editandoId ? 'Mascota actualizada' : 'Mascota agregada')
     limpiarFormulario()
     obtenerMascotas()
-    obtenerMascotaClientes()
+    obtainMascotaClientes()
   }
 
   async function eliminarMascota(id) {
@@ -348,9 +349,14 @@ function MascotasContenido() {
                     <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-2">Tutores</p>
                     <div className="flex flex-wrap gap-2">
                       {tutores.map((t) => (
-                        <span key={t.id} className="bg-[var(--color-teal)] text-white text-xs px-3 py-1 rounded-full">
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => router.push(`/clientes?buscar=${encodeURIComponent(`${t.nombre} ${t.apellido}`)}`)}
+                          className="bg-[var(--color-teal)] text-white text-xs px-3 py-1 rounded-full hover:opacity-80 cursor-pointer"
+                        >
                           {t.nombre} {t.apellido}
-                        </span>
+                        </button>
                       ))}
                     </div>
                   </div>
