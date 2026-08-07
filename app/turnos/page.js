@@ -188,6 +188,11 @@ function TurnosContenido() {
     nombreConTutores(m).toLowerCase().includes(busquedaMascota.toLowerCase())
   )
 
+  function irAlListado(e) {
+    e.preventDefault()
+    document.getElementById('lista-turnos')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   // Lógica de filtrado combinada
   const turnosFiltrados = turnos.filter((turno) => {
     // Filtro de búsqueda por texto
@@ -219,7 +224,26 @@ function TurnosContenido() {
 
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Turnos</h1>
+
+      <div className="flex items-center gap-4 mb-6">
+        <h1 className="text-3xl font-bold whitespace-nowrap">Turnos</h1>
+        <form onSubmit={irAlListado} className="flex gap-2 flex-1 max-w-sm">
+          <input 
+            placeholder="Buscar turno..." 
+            value={busqueda} 
+            onChange={(e) => setBusqueda(e.target.value)} 
+            className="w-full" 
+          />
+          <button type="submit">Buscar</button>
+          <button 
+            type="button" 
+            onClick={() => { setBusqueda(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }} 
+            className="!bg-gray-300 !text-gray-700"
+          >
+            Limpiar
+          </button>
+        </form>
+      </div>
 
       <form onSubmit={guardarTurno} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
@@ -270,14 +294,8 @@ function TurnosContenido() {
         </div>
       </form>
 
-      {/* Barra de búsqueda y filtros */}
+      {/* Filtros rápidos de fechas */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <input
-          placeholder="Buscar turno..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="max-w-sm"
-        />
         <button
           type="button"
           onClick={() => { setFiltroRapido(filtroRapido === 'semana' ? null : 'semana'); setMostrarRango(false) }}
@@ -299,13 +317,13 @@ function TurnosContenido() {
         >
           Por rango
         </button>
-        {(filtroRapido || busqueda) && (
+        {(filtroRapido || rangoDesde || rangoHasta) && (
           <button
             type="button"
-            onClick={() => { setFiltroRapido(null); setBusqueda(''); setRangoDesde(''); setRangoHasta(''); setMostrarRango(false) }}
+            onClick={() => { setFiltroRapido(null); setRangoDesde(''); setRangoHasta(''); setMostrarRango(false) }}
             className="!bg-[var(--color-coral)]"
           >
-            Limpiar
+            Limpiar fechas
           </button>
         )}
       </div>
@@ -330,7 +348,7 @@ function TurnosContenido() {
         <p className="text-sm text-gray-400">No hay turnos para el filtro seleccionado.</p>
       )}
 
-      <div className="flex flex-col gap-5">
+      <div id="lista-turnos" className="flex flex-col gap-5">
         {turnosFiltrados.map((turno) => {
           const mascota = mascotas.find((m) => m.id === turno.mascota_id)
           const tutores = mascota ? tutoresDeMascota(mascota.id) : []
