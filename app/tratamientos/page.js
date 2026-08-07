@@ -8,7 +8,6 @@ function TratamientosContenido() {
   const [mascotas, setMascotas] = useState([])
   const [clientes, setClientes] = useState([])
   const [mascotaClientes, setMascotaClientes] = useState([])
-  const [avisos, setAvisos] = useState([])
   const [mascotaId, setMascotaId] = useState('')
   const [busquedaMascota, setBusquedaMascota] = useState('')
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
@@ -46,18 +45,11 @@ function TratamientosContenido() {
     else setMascotaClientes(data)
   }
 
-  async function obtenerAvisos() {
-    const { data, error } = await supabase.from('avisos').select('*')
-    if (error) console.log('error', error)
-    else setAvisos(data)
-  }
-
   useEffect(() => {
     obtenerTratamientos()
     obtenerMascotas()
     obtenerClientes()
     obtenerMascotaClientes()
-    obtenerAvisos()
   }, [])
 
   useEffect(() => {
@@ -79,32 +71,6 @@ function TratamientosContenido() {
     const tutores = tutoresDeMascota(mascota.id)
     if (tutores.length === 0) return mascota.nombre
     return `${mascota.nombre} — ${tutores.map((t) => `${t.nombre} ${t.apellido}`).join(', ')}`
-  }
-
-  function tratamientoFueAvisado(tratamientoId) {
-    return avisos.some((a) => a.tratamiento_id === tratamientoId)
-  }
-
-  async function toggleAvisoTratamiento(tratamientoId, yaAvisado) {
-    if (yaAvisado) {
-      const { error } = await supabase
-        .from('avisos')
-        .delete()
-        .eq('tratamiento_id', tratamientoId)
-      if (error) alert('No se pudo actualizar: ' + error.message)
-      else obtenerAvisos()
-    } else {
-      const { error } = await supabase
-        .from('avisos')
-        .insert([{
-          tratamiento_id: tratamientoId,
-          canal: 'manual',
-          estado_envio: 'enviado',
-          fecha_envio: new Date().toISOString(),
-        }])
-      if (error) alert('No se pudo actualizar: ' + error.message)
-      else obtenerAvisos()
-    }
   }
 
   function limpiarFormulario() {
@@ -204,9 +170,33 @@ function TratamientosContenido() {
     nombreConTutores(m).toLowerCase().includes(busquedaMascota.toLowerCase())
   )
 
+  function irAlListado(e) {
+    e.preventDefault()
+    document.getElementById('lista-tratamientos')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <div className="px-12 py-8 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Tratamientos</h1>
+      
+      <div className="flex items-center gap-4 mb-6">
+        <h1 className="text-3xl font-bold whitespace-nowrap">Tratamientos</h1>
+        <form onSubmit={irAlListado} className="flex gap-2 flex-1 max-w-sm">
+          <input 
+            placeholder="Buscar tratamiento..." 
+            value={busqueda} 
+            onChange={(e) => setBusqueda(e.target.value)} 
+            className="w-full" 
+          />
+          <button type="submit">Buscar</button>
+          <button 
+            type="button" 
+            onClick={() => { setBusqueda(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }} 
+            className="!bg-gray-300 !text-gray-700"
+          >
+            Limpiar
+          </button>
+        </form>
+      </div>
 
       <form onSubmit={guardarTratamiento} className="bg-white border border-[var(--color-line)] rounded-xl p-6 mb-8 shadow-sm max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-[var(--color-violet)]">
@@ -263,31 +253,20 @@ function TratamientosContenido() {
         </div>
       </form>
 
-      <div className="flex gap-2 mb-6">
-        <input placeholder="Buscar tratamiento..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="max-w-sm" />
-        <button type="button">Buscar</button>
-      </div>
-
       <hr className="border-t border-gray-200 mb-6" />
 
-      <div className="flex flex-col gap-5">
+      <div id="lista-tratamientos" className="flex flex-col gap-5">
         {tratamientos
           .filter((tratamiento) => {
             if (busqueda === '') return true
-            const texto = busqueda.toLowerCase()
             const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
             const tutores = mascota ? tutoresDeMascota(mascota.id) : []
-            return (
-              (mascota && mascota.nombre.toLowerCase().includes(texto)) ||
-              tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(texto)) ||
-              (tratamiento.nombre || '').toLowerCase().includes(texto) ||
-              (tratamiento.tipo || '').toLowerCase().includes(texto)
-            )
+            return tutores.some((t) => `${t.nombre} ${t.apellido}`.toLowerCase().includes(busqueda.toLowerCase())) ||
+              mascota.nombre.toLowerCase().includes(busqueda.toLowerCase())
           })
           .map((tratamiento) => {
             const mascota = mascotas.find((m) => m.id === tratamiento.mascota_id)
             const tutores = mascota ? tutoresDeMascota(mascota.id) : []
-            const avisado = tratamientoFueAvisado(tratamiento.id)
             return (
               <div key={tratamiento.id} className="bg-white border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start mb-4">
@@ -316,15 +295,6 @@ function TratamientosContenido() {
                   <Dato titulo="Aplicación" valor={tratamiento.fecha_aplicacion} />
                   <Dato titulo="Próxima" valor={tratamiento.fecha_proxima} />
                   <Dato titulo="Notas" valor={tratamiento.notas} />
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 min-w-[120px]">
-                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1">Aviso</p>
-                    <button
-                      onClick={() => toggleAvisoTratamiento(tratamiento.id, avisado)}
-                      className={`!text-xs !px-3 !py-1 ${avisado ? '!bg-green-600' : '!bg-gray-400'}`}
-                    >
-                      {avisado ? 'Avisado' : 'No avisado'}
-                    </button>
-                  </div>
                 </div>
               </div>
             )
