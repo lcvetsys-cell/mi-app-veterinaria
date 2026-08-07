@@ -176,7 +176,7 @@ function MascotasContenido() {
     )
   }
 
-  const clientesFiltrados = clients.filter((c) =>
+  const clientesFiltrados = clientes.filter((c) =>
     `${c.nombre} ${c.apellido}`.toLowerCase().includes(busquedaTutor.toLowerCase()) &&
     !tutoresSeleccionados.find((t) => t.id === c.id)
   )
